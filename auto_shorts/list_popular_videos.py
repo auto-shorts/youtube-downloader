@@ -5,7 +5,8 @@ import pandas as pd
 from config import GCP_API_KEY
 import pprint
 
-class YoutubeConnector:
+
+class YoutubeDataDownloader:
     def __init__(
         self,
         api_key: str = GCP_API_KEY,
@@ -33,29 +34,30 @@ class YoutubeConnector:
 
         return categories
 
-
-# def main():
-#     # Disable OAuthlib's HTTPS verification when running locally.
-#     # *DO NOT* leave this option enabled in production.
-#     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-
-#     api_service_name = "youtube"
-#     api_version = "v3"
-
-#     # Get credentials and create an API client
-#     youtube = googleapiclient.discovery.build(
-#         api_service_name, api_version, developerKey=GCP_API_KEY
-#     )
-
-#     request = youtube.videos().list(
-#         part="contentDetails, id, liveStreamingDetails, localizations, player, recordingDetails, snippet, statistics, status, topicDetails",
-#         chart="mostPopular",
-#     )
-#     response = request.execute()
-
-#     print(response)
+    def most_popular_videos(
+        self, region_code: str | None = None, video_category: int | None = None
+    ) -> dict:
+        result_keys = [
+            "contentDetails",
+            "id",
+            "liveStreamingDetails",
+            "localizations",
+            "player",
+            "recordingDetails",
+            "snippet",
+            "statistics",
+            "status",
+            "topicDetails",
+        ]
+        request = self.youtube.videos().list(
+            part=",".join(result_keys),
+            chart="mostPopular",
+            regionCode=region_code,
+            videoCategoryId=video_category,
+        )
+        return request.execute()["items"]
 
 
 if __name__ == "__main__":
-    connector = YoutubeConnector()
-    pprint.pprint(connector.video_categories_by_region("us"))
+    connector = YoutubeDataDownloader()
+    pprint.pprint(connector.most_popular_videos()[0])
