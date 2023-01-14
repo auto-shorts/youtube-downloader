@@ -1,7 +1,5 @@
-import os
 import googleapiclient.discovery
 import googleapiclient.errors
-import pandas as pd
 from config import GCP_API_KEY
 import pprint
 
