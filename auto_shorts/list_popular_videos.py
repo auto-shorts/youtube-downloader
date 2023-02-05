@@ -1,9 +1,23 @@
+from typing import Any
 import googleapiclient.discovery
 import googleapiclient.errors
 from config import GCP_API_KEY
 import pprint
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
+
+base_result_keys = [
+    "contentDetails",
+    "id",
+    "liveStreamingDetails",
+    "localizations",
+    "player",
+    "recordingDetails",
+    "snippet",
+    "statistics",
+    "status",
+    "topicDetails",
+]
 
 
 class VideoStatistics(BaseModel):
@@ -41,7 +55,7 @@ class VideoPreprocessor(VideoPreprocessorBase):
         self.video_data = video_data
 
     @staticmethod
-    def safeget(dct, *keys):
+    def safeget(dct: dict, *keys) -> Any:
         for key in keys:
             try:
                 dct = dct[key]
@@ -90,12 +104,13 @@ class YoutubeDataDownloader:
         api_service_name: str = "youtube",
         api_version: str = "v3",
         preprocessor_class: VideoPreprocessorBase = VideoPreprocessor,
+        result_keys: list = base_result_keys,
     ) -> None:
         self.youtube = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=api_key
         )
         self.preprocessor_class = preprocessor_class
-
+        self.result_keys = result_keys
     def video_categories_by_region(self, region_code: str) -> dict:
         request = self.youtube.videoCategories().list(
             part="snippet", regionCode=region_code
@@ -114,25 +129,18 @@ class YoutubeDataDownloader:
         return categories
 
     def most_popular_videos(
-        self, region_code: str | None = None, video_category: int | None = None
+        self,
+        region_code: str | None = None,
+        video_category_id: int | None = None,
+        max_results: int | None = 100,
     ) -> list[VideoData]:
-        result_keys = [
-            "contentDetails",
-            "id",
-            "liveStreamingDetails",
-            "localizations",
-            "player",
-            "recordingDetails",
-            "snippet",
-            "statistics",
-            "status",
-            "topicDetails",
-        ]
+
         request = self.youtube.videos().list(
-            part=",".join(result_keys),
+            part=",".join(self.result_keys),
             chart="mostPopular",
             regionCode=region_code,
-            videoCategoryId=video_category,
+            videoCategoryId=video_category_id,
+            maxResults=max_results,
         )
         all_videos = request.execute()["items"]
         return [
@@ -140,7 +148,15 @@ class YoutubeDataDownloader:
             for video_data in all_videos
         ]
 
+    def download_video_data(self, video_id: str) -> VideoData:
+        request = self.youtube.videos().list(
+            part=",".join(self.result_keys), id=video_id
+        )
+        video_data = request.execute()["items"][0]
+        preprocessor = self.preprocessor_class(video_data=video_data)
+        return preprocessor.preprocess_video()
+
 
 if __name__ == "__main__":
     connector = YoutubeDataDownloader()
-    pprint.pprint(connector.most_popular_videos()[1].dict())
+    pprint.pprint(connector.download_video_data(video_id="VdMEP9ScpUg"))
