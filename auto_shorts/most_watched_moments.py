@@ -68,6 +68,13 @@ class MostWatchedMomentsDownloader(MostWatchedMomentsDownloaderBase):
 
         return self._preprocess_results(raw_results=raw_results)
 
+    def contain_most_watched(self) -> bool:
+        try:
+            self.get_most_watched_moments()
+            return True
+        except MostReplayedNotPresentException:
+            return False
+
 
 if __name__ == "__main__":
     moments_downloader = MostWatchedMomentsDownloader(video_id="3Xj9pJECk2o")

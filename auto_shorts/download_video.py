@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 from pytube import YouTube
-from auto_shorts.list_popular_videos import VideoData, YoutubeDataDownloader
+from auto_shorts.list_popular_videos import VideoData, VideoInfoDownloader
 from auto_shorts.most_watched_moments import MostWatchedMomentsDownloader
 
 
@@ -58,7 +58,7 @@ class YoutubeVideoDownloader:
 
 
 if __name__ == "__main__":
-    connector = YoutubeDataDownloader()
+    connector = VideoInfoDownloader()
     video_data = connector.download_video_data(video_id="VdMEP9ScpUg")
     downloader = YoutubeVideoDownloader(video_data=video_data)
     downloader.save()

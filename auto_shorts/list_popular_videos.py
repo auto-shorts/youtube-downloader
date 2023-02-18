@@ -1,3 +1,6 @@
+import json
+import os
+from pathlib import Path
 from typing import Any
 import googleapiclient.discovery
 import googleapiclient.errors
@@ -21,9 +24,9 @@ base_result_keys = [
 
 
 class VideoStatistics(BaseModel):
-    comments: int
-    likes: int
-    views: int
+    comments: int | None
+    likes: int | None
+    views: int | None
 
 
 class VideoData(BaseModel):
@@ -38,6 +41,13 @@ class VideoData(BaseModel):
     tags: list[str] | None
     title: str | None
     statistics: VideoStatistics | None
+
+
+class VideoCategory(BaseModel):
+    region_code: str
+    category_id: int
+    category_title: str
+    assignable: bool
 
 
 class VideoPreprocessorBase(ABC):
@@ -64,7 +74,6 @@ class VideoPreprocessor(VideoPreprocessorBase):
         return dct
 
     def preprocess_video(self) -> VideoData:
-        # print(self.video_data)
         statistics_data = self.safeget(self.video_data, "statistics")
         statistics = VideoStatistics(
             comments=self.safeget(statistics_data, "commentCount"),
@@ -97,36 +106,59 @@ class VideoPreprocessor(VideoPreprocessorBase):
         )
 
 
-class YoutubeDataDownloader:
+class InfoDownloaderBase:
     def __init__(
         self,
         api_key: str = GCP_API_KEY,
         api_service_name: str = "youtube",
         api_version: str = "v3",
-        preprocessor_class: VideoPreprocessorBase = VideoPreprocessor,
-        result_keys: list = base_result_keys,
     ) -> None:
         self.youtube = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=api_key
         )
-        self.preprocessor_class = preprocessor_class
-        self.result_keys = result_keys
-    def video_categories_by_region(self, region_code: str) -> dict:
+
+
+class CategoryInfoDownloader(InfoDownloaderBase):
+    def video_categories_by_region(
+        self, region_code: str, save_path: Path | None = None
+    ) -> dict:
         request = self.youtube.videoCategories().list(
             part="snippet", regionCode=region_code
         )
         response = request.execute()
-        categories = {}
+        categories = []
 
         for item in response["items"]:
             snippet = item["snippet"]
-            categories[item["id"]] = {
-                "title": snippet["title"],
-                "assignable": snippet["assignable"],
-                "etag": item["etag"],
-            }
+            category = VideoCategory(
+                region_code=region_code,
+                category_id=item["id"],
+                assignable=snippet["assignable"],
+                category_title=snippet["title"],
+            )
+            categories.append(category)
+
+        if save_path:
+            os.makedirs(save_path, exist_ok=True)
+            with open(save_path / f"{region_code}.json", "w") as file:
+                json.dump(
+                    [category.dict() for category in categories],
+                    file,
+                    indent=4,
+                )
 
         return categories
+
+
+class VideoInfoDownloader(InfoDownloaderBase):
+    def __init__(
+        self,
+        preprocessor_class: VideoPreprocessorBase = VideoPreprocessor,
+        result_keys: list = base_result_keys,
+    ) -> None:
+        super().__init__()
+        self.preprocessor_class = preprocessor_class
+        self.result_keys = result_keys
 
     def most_popular_videos(
         self,
@@ -158,5 +190,6 @@ class YoutubeDataDownloader:
 
 
 if __name__ == "__main__":
-    connector = YoutubeDataDownloader()
-    pprint.pprint(connector.download_video_data(video_id="VdMEP9ScpUg"))
+    info_downloader = CategoryInfoDownloader()
+    save_path = Path(__file__).parents[1] / "categories"
+    pprint.pprint(info_downloader.video_categories_by_region(region_code="PL", save_path=save_path))
