@@ -50,7 +50,7 @@ class VideoCategory(BaseModel):
     assignable: bool
 
 
-class VideoPreprocessorBase(ABC):
+class ApiResponsePreprocessorBase(ABC):
     @abstractmethod
     def __init__(self, video_data: dict) -> None:
         """Ensure video_data keyword exists"""
@@ -60,12 +60,12 @@ class VideoPreprocessorBase(ABC):
         """Main preprocessing function"""
 
 
-class VideoPreprocessor(VideoPreprocessorBase):
+class ApiResponsePreprocessor(ApiResponsePreprocessorBase):
     def __init__(self, video_data: dict) -> None:
         self.video_data = video_data
 
     @staticmethod
-    def safeget(dct: dict, *keys) -> Any:
+    def safe_get(dct: dict, *keys) -> Any:
         for key in keys:
             try:
                 dct = dct[key]
@@ -74,34 +74,36 @@ class VideoPreprocessor(VideoPreprocessorBase):
         return dct
 
     def preprocess_video(self) -> VideoData:
-        statistics_data = self.safeget(self.video_data, "statistics")
+        statistics_data = self.safe_get(self.video_data, "statistics")
         statistics = VideoStatistics(
-            comments=self.safeget(statistics_data, "commentCount"),
-            likes=self.safeget(statistics_data, "likeCount"),
-            views=self.safeget(statistics_data, "viewCount"),
+            comments=self.safe_get(statistics_data, "commentCount"),
+            likes=self.safe_get(statistics_data, "likeCount"),
+            views=self.safe_get(statistics_data, "viewCount"),
         )
         return VideoData(
-            id=self.safeget(
+            id=self.safe_get(
                 self.video_data,
                 "id",
             ),
-            channel_id=self.safeget(self.video_data, "snippet", "channelId"),
-            channel_title=self.safeget(
+            channel_id=self.safe_get(self.video_data, "snippet", "channelId"),
+            channel_title=self.safe_get(
                 self.video_data, "snippet", "channelTitle"
             ),
-            licensed=self.safeget(
+            licensed=self.safe_get(
                 self.video_data, "contentDetails", "licensedContent"
             ),
-            audio_language=self.safeget(
+            audio_language=self.safe_get(
                 self.video_data, "snippet", "defaultAudioLanguage"
             ),
-            decripton=self.safeget(self.video_data, "snippet", "description"),
-            published_at=self.safeget(
+            decripton=self.safe_get(self.video_data, "snippet", "description"),
+            published_at=self.safe_get(
                 self.video_data, "snippet", "publishedAt"
             ),
-            category_id=self.safeget(self.video_data, "snippet", "categoryId"),
-            tags=self.safeget(self.video_data, "snippet", "tags"),
-            title=self.safeget(self.video_data, "snippet", "title"),
+            category_id=self.safe_get(
+                self.video_data, "snippet", "categoryId"
+            ),
+            tags=self.safe_get(self.video_data, "snippet", "tags"),
+            title=self.safe_get(self.video_data, "snippet", "title"),
             statistics=statistics,
         )
 
@@ -153,7 +155,7 @@ class CategoryInfoDownloader(InfoDownloaderBase):
 class VideoInfoDownloader(InfoDownloaderBase):
     def __init__(
         self,
-        preprocessor_class: VideoPreprocessorBase = VideoPreprocessor,
+        preprocessor_class: ApiResponsePreprocessorBase = ApiResponsePreprocessor,
         result_keys: list = base_result_keys,
     ) -> None:
         super().__init__()
@@ -180,16 +182,76 @@ class VideoInfoDownloader(InfoDownloaderBase):
             for video_data in all_videos
         ]
 
+    def id_from_response(self, response: dict) -> list[str]:
+        return [
+            self.preprocessor_class.safe_get(video_data, "id", "videoId")
+            for video_data in response["items"]
+        ]
+
     def download_video_data(self, video_id: str) -> VideoData:
+        """
+        Video id might be one id or string with
+        multiple id separated by coma.
+        """
         request = self.youtube.videos().list(
             part=",".join(self.result_keys), id=video_id
         )
-        video_data = request.execute()["items"][0]
-        preprocessor = self.preprocessor_class(video_data=video_data)
-        return preprocessor.preprocess_video()
+        response = request.execute()["items"]
+        video_data_preprocessed = []
+
+        for video_data in response:
+            preprocessor = self.preprocessor_class(video_data=video_data)
+            video_data_preprocessed.append(preprocessor.preprocess_video())
+
+        return video_data_preprocessed
+
+    def video_id_by_page_token(self, page_token: str) -> tuple[list[str], str]:
+        request = self.youtube.search().list(
+            part="snippet", pageToken=page_token
+        )
+        response = request.execute()
+        next_page_token = response["nextPageToken"]
+
+        return self.id_from_response(response), next_page_token
+
+    def video_id_by_search_query(
+        self, q: str, max_results: int = 100, order: str = "viewCount"
+    ) -> list[str]:
+        request = self.youtube.search().list(
+            q=q,
+            part="snippet",
+            maxResults=max_results,
+            order=order,
+            type="video"
+            # videoLicense="creativeCommon", To check later!
+        )
+        response = request.execute()
+        video_id = self.id_from_response(response)
+        next_page_token = response["nextPageToken"]
+        
+        while len(video_id) < max_results:
+            tmp_video_id, next_page_token = self.video_id_by_page_token(next_page_token)
+            video_id.extend(tmp_video_id)
+            
+        return video_id
+
+    def video_data_by_search_query(
+        self, q: str, max_results: int = 100, order: str = "viewCount"
+    ) -> list[VideoData]:
+        video_id = self.video_id_by_search_query(
+            q=q, max_results=max_results, order=order
+        )
+        print(video_id)
+        return self.download_video_data(video_id=",".join(video_id))
 
 
 if __name__ == "__main__":
-    info_downloader = CategoryInfoDownloader()
-    save_path = Path(__file__).parents[1] / "categories"
-    pprint.pprint(info_downloader.video_categories_by_region(region_code="PL", save_path=save_path))
+    info_downloader = VideoInfoDownloader()
+    q = "blinders"
+    results = info_downloader.video_data_by_search_query(q=q, max_results=10)
+    #pprint.pprint(results)
+    # print(f"Keys: {results.keys()}")
+    print(len(results))
+    # info_downloader = CategoryInfoDownloader()
+    # save_path = Path(__file__).parents[1] / "categories"
+    # pprint.pprint(info_downloader.video_categories_by_region(region_code="PL", save_path=save_path))
