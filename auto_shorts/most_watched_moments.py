@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+from abc import ABC, abstractmethod
 
 
 class MostReplayedNotPresentException(Exception):
@@ -12,7 +13,17 @@ class MostReplayedNotPresentException(Exception):
         super().__init__(self.message)
 
 
-class MostWatchedMomentsDownloader:
+class MostWatchedMomentsDownloaderBase(ABC):
+    @abstractmethod
+    def __init__(self, video_id: str) -> None:
+        """Ensure video_id param exists"""
+
+    @abstractmethod
+    def get_most_watched_moments(self):
+        """Main function"""
+
+
+class MostWatchedMomentsDownloader(MostWatchedMomentsDownloaderBase):
     def __init__(self, video_id: str) -> None:
         self.video_id = video_id
 
@@ -26,7 +37,7 @@ class MostWatchedMomentsDownloader:
         for timeframe in raw_results["items"][0]["mostReplayed"][
             "heatMarkers"
         ]:  # check it in the future
-            print(timeframe)
+            # print(timeframe)
             timeframe_data = timeframe["heatMarkerRenderer"]
 
             one_timeframe_cleaned = {}
@@ -50,12 +61,25 @@ class MostWatchedMomentsDownloader:
     def get_most_watched_moments(self) -> pd.DataFrame:
         raw_results = self._get_data_from_api()
 
-        if raw_results["items"][0]["mostReplayed"] == None: # check if 0 is okay
+        if (
+            raw_results["items"][0]["mostReplayed"] == None
+        ):  # check if 0 is okay
             raise MostReplayedNotPresentException()
-        
+
         return self._preprocess_results(raw_results=raw_results)
+
+    def contain_most_watched(self) -> bool:
+        try:
+            self.get_most_watched_moments()
+            return True
+        except MostReplayedNotPresentException:
+            return False
 
 
 if __name__ == "__main__":
     moments_downloader = MostWatchedMomentsDownloader(video_id="3Xj9pJECk2o")
-    print(moments_downloader.get_most_watched_moments())
+    print(
+        moments_downloader.get_most_watched_moments().sort_values(
+            by="intensity_score"
+        )
+    )
