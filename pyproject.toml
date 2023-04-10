@@ -19,6 +19,7 @@ pydantic = "^1.10.4"
 pytube = "^12.1.2"
 requests = "^2.28.2"
 boto3 = "^1.26.97"
+loguru = "^0.7.0"
 
 
 [tool.poetry.group.dev.dependencies]
