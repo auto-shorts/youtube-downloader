@@ -80,6 +80,6 @@ if __name__ == "__main__":
     moments_downloader = MostWatchedMomentsDownloader(video_id="3Xj9pJECk2o")
     print(
         moments_downloader.get_most_watched_moments().sort_values(
-            by="intensity_score"
+            by="intensity_score", ascending=False
         )
     )

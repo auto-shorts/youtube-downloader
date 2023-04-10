@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from auto_shorts.list_popular_videos import VideoData, VideoInfoDownloader
-from auto_shorts.most_watched_moments import MostWatchedMomentsDownloader
+from auto_shorts.video_download.download_info import VideoData, VideoInfoDownloader
+from auto_shorts.video_download.most_watched_moments import MostWatchedMomentsDownloader
 
 class VideoToDownloadChooseBase(ABC):
     @abstractmethod
