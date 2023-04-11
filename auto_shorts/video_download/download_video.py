@@ -144,5 +144,5 @@ class MultipleVideoDownloader:
 
 if __name__ == "__main__":
     m_downloader = MultipleVideoDownloader()
-    m_downloader.download_videos_from_channel(video_id="1fUpkq7urDU", video_number_limit=10, to_s3=True,
+    m_downloader.download_videos_from_channel(video_id="1fUpkq7urDU", video_number_limit=100, to_s3=True,
                                               save_local=True)
