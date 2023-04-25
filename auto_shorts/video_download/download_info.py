@@ -10,6 +10,7 @@ import googleapiclient.discovery
 import googleapiclient.errors
 from loguru import logger
 from pydantic import BaseModel
+import pytz
 
 from auto_shorts.config import GCP_API_KEY
 
@@ -38,7 +39,7 @@ class VideoData(BaseModel):
     audio_language: str | None
     licensed: bool | None
     description: str | None
-    published_at: datetime | None
+    published_at: str | None
     category_id: str | None
     tags: list[str] | None
     title: str | None
@@ -113,10 +114,8 @@ def preprocess_video_response(video_data) -> VideoData:
         channel_title=safe_get(video_data, "snippet", "channelTitle"),
         licensed=safe_get(video_data, "contentDetails", "licensedContent"),
         audio_language=safe_get(video_data, "snippet", "defaultAudioLanguage"),
-        decripton=safe_get(video_data, "snippet", "description"),
-        published_at=datetime_from_iso_str(
-            safe_get(video_data, "snippet", "publishedAt")
-        ),
+        description=safe_get(video_data, "snippet", "description"),
+        published_at=safe_get(video_data, "snippet", "publishedAt"),
         category_id=safe_get(video_data, "snippet", "categoryId"),
         tags=safe_get(video_data, "snippet", "tags"),
         title=safe_get(video_data, "snippet", "title"),
@@ -412,8 +411,11 @@ class VideoInfoDownloader(InfoDownloaderBase):
 
 class ChannelInfoDownloaderInterface(Protocol):
     def get_videos_from_channel(
-        self, video_id: str, video_number_limit: int
-    ) -> list[VideoDataWithStats]:
+        self,
+        video_id: str,
+        video_info_limit: int,
+        max_results_per_page: int = 20,
+    ) -> list[VideoData]:
         ...
 
 
@@ -465,7 +467,9 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         return f"UU{channel_id[2:]}"
 
     def _next_page_download(
-        self, next_page_token: str, playlist_id: str, max_results_per_page: int
+        self,
+        next_page_token: str,
+        playlist_id: str,
     ) -> PlaylistVideoData:
         """
         Downloads the next page of videos from the specified playlist and returns the
@@ -483,7 +487,6 @@ class ChannelInfoDownloader(InfoDownloaderBase):
             part=",".join(self.result_keys),
             pageToken=next_page_token,
             playlistId=playlist_id,
-            max_results=max_results_per_page,
         )
         response = request.execute()
         return preprocess_playlist(response)
@@ -491,7 +494,7 @@ class ChannelInfoDownloader(InfoDownloaderBase):
     def get_videos_from_channel(
         self,
         video_id: str,
-        video_number_limit: int = 1000,
+        video_info_limit: int,
         max_results_per_page: int = 20,
     ) -> list[VideoData]:
         """
@@ -500,8 +503,8 @@ class ChannelInfoDownloader(InfoDownloaderBase):
 
         Args:
             video_id (str): The ID of a video in the channel.
-            video_number_limit (int): The maximum number of videos to be returned.
             max_results_per_page (int): Number of videos returned in each playlist page.
+            video_info_limit (int): Limit of requested videos from channel
 
         Returns:
             list[VideoData]: A list of VideoData objects containing the video
@@ -518,31 +521,34 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         video_data: list[VideoData] = [*playlist_data.video_data]
         next_page_token = playlist_data.next_page_token
 
-        while next_page_token is not None and len(video_data) < video_number_limit:
+        while next_page_token and len(video_data) < video_info_limit:
             playlist_data = self._next_page_download(
                 next_page_token=next_page_token,
                 playlist_id=playlist_id,
-                max_results_per_page=max_results_per_page,
             )
             video_data.extend(playlist_data.video_data)
 
         return video_data
 
 
+VideoDataList = list[VideoData | VideoDataWithStats]
+
+
 class VideoDataParserInterface(Protocol):
     def select_videos_by_date(
-        self, date_from: str, date_to_str
+        self, video_data_list: VideoDataList, date_from: str, date_to
     ) -> list[VideoData | VideoDataWithStats]:
         ...
 
 
-VideoDataList = list[VideoData | VideoDataWithStats]
-
-
 class VideoDataParser:
     @staticmethod
-    def prepare_date(date: str) -> datetime:
-        return datetime.strptime(date, "%Y-%m-%d")
+    def prepare_date_from_user(date: str) -> datetime:
+        return datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=pytz.utc)
+
+    @staticmethod
+    def prepare_video_date(date: str) -> datetime:
+        return datetime_from_iso_str(date)
 
     @staticmethod
     def check_date(
@@ -564,15 +570,14 @@ class VideoDataParser:
     def select_videos_by_date(
         self, video_data_list: VideoDataList, date_from: str | None, date_to: str | None
     ) -> VideoDataList:
-
-        date_from = self.prepare_date(date_from) if date_from else None
-        date_to = self.prepare_date(date_to) if date_to else None
+        date_from = self.prepare_date_from_user(date_from) if date_from else None
+        date_to = self.prepare_date_from_user(date_to) if date_to else None
 
         return [
             video_data
             for video_data in video_data_list
             if self.check_date(
-                video_data_date=video_data.published_at,
+                video_data_date=self.prepare_video_date(video_data.published_at),
                 date_from=date_from,
                 date_to=date_to,
             )
