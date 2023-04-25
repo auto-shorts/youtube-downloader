@@ -1,12 +1,16 @@
 import json
 import os
 import pprint
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from typing import Protocol
 
 import googleapiclient.discovery
 import googleapiclient.errors
+from loguru import logger
 from pydantic import BaseModel
+import pytz
 
 from auto_shorts.config import GCP_API_KEY
 
@@ -60,6 +64,7 @@ class VideoCategory(BaseModel):
     category_title : str
         The title of the video category.
     """
+
     region_code: str
     category_id: int
     category_title: str
@@ -95,6 +100,10 @@ def safe_get(dct: dict, *keys) -> Any:
     return dct
 
 
+def datetime_from_iso_str(date: str) -> datetime | None:
+    return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%z") if date else None
+
+
 def preprocess_video_response(video_data) -> VideoData:
     return VideoData(
         id=safe_get(
@@ -105,7 +114,7 @@ def preprocess_video_response(video_data) -> VideoData:
         channel_title=safe_get(video_data, "snippet", "channelTitle"),
         licensed=safe_get(video_data, "contentDetails", "licensedContent"),
         audio_language=safe_get(video_data, "snippet", "defaultAudioLanguage"),
-        decripton=safe_get(video_data, "snippet", "description"),
+        description=safe_get(video_data, "snippet", "description"),
         published_at=safe_get(video_data, "snippet", "publishedAt"),
         category_id=safe_get(video_data, "snippet", "categoryId"),
         tags=safe_get(video_data, "snippet", "tags"),
@@ -142,11 +151,12 @@ class InfoDownloaderBase:
     """
     Base class for downloading data from the YouTube API.
     """
+
     def __init__(
-            self,
-            api_key: str = GCP_API_KEY,
-            api_service_name: str = "youtube",
-            api_version: str = "v3",
+        self,
+        api_key: str = GCP_API_KEY,
+        api_service_name: str = "youtube",
+        api_version: str = "v3",
     ) -> None:
         """
         Initializes a new instance of the InfoDownloaderBase class.
@@ -169,8 +179,9 @@ class CategoryInfoDownloader(InfoDownloaderBase):
         video_categories_by_region(region_code save_path)
             Fetches video categories for the given region code from the YouTube API.
     """
+
     def video_categories_by_region(
-            self, region_code: str, save_path: Path | None = None
+        self, region_code: str, save_path: Path | None = None
     ) -> list[VideoCategory]:
         """
         Fetches video categories for the given region code from the YouTube API.
@@ -192,7 +203,7 @@ class CategoryInfoDownloader(InfoDownloaderBase):
         ------
         HttpError
             If there's an error in fetching the video categories data from the YouTube API.
-            """
+        """
         request = self.youtube.videoCategories().list(
             part="snippet", regionCode=region_code
         )
@@ -248,18 +259,19 @@ class VideoInfoDownloader(InfoDownloaderBase):
         video_data_by_search_query(q, max_results, order):
             Returns video data for a search query.
     """
+
     def __init__(
-            self,
-            result_keys: list = BASE_RESULT_KEYS,
+        self,
+        result_keys: list = BASE_RESULT_KEYS,
     ) -> None:
         super().__init__()
         self.result_keys = result_keys
 
     def most_popular_videos(
-            self,
-            region_code: str | None = None,
-            video_category_id: int | None = None,
-            max_results: int | None = 100,
+        self,
+        region_code: str | None = None,
+        video_category_id: int | None = None,
+        max_results: int | None = 100,
     ) -> list[VideoDataWithStats]:
         """
         Returns the most popular videos for a given region or category.
@@ -340,11 +352,11 @@ class VideoInfoDownloader(InfoDownloaderBase):
         try:
             next_page_token = response["nextPageToken"]
             return self.id_from_response(response), next_page_token
-        except KeyError:
-            pprint.pprint(response)
+        except KeyError as e:
+            logger.error(e)
 
     def video_id_by_search_query(
-            self, q: str, max_results: int = 100, order: str = "viewCount"
+        self, q: str, max_results: int = 100, order: str = "viewCount"
     ) -> list[str]:
         """
         Returns video ids for a search query.
@@ -377,7 +389,7 @@ class VideoInfoDownloader(InfoDownloaderBase):
         return video_id
 
     def video_data_by_search_query(
-            self, q: str, max_results: int = 100, order: str = "viewCount"
+        self, q: str, max_results: int = 100, order: str = "viewCount"
     ) -> list[VideoDataWithStats]:
         """
         Returns video data for a search query.
@@ -395,6 +407,16 @@ class VideoInfoDownloader(InfoDownloaderBase):
             q=q, max_results=max_results, order=order
         )
         return self.download_video_data(video_id=",".join(video_id))
+
+
+class ChannelInfoDownloaderInterface(Protocol):
+    def get_videos_from_channel(
+        self,
+        video_id: str,
+        video_info_limit: int,
+        max_results_per_page: int = 20,
+    ) -> list[VideoData]:
+        ...
 
 
 class ChannelInfoDownloader(InfoDownloaderBase):
@@ -419,9 +441,10 @@ class ChannelInfoDownloader(InfoDownloaderBase):
             Returns a list of VideoData objects containing the video information from
             the specified channel up to the specified limit.
     """
+
     def __init__(
-            self,
-            result_keys: tuple = BASE_PLAYLIST_RESULT_KEYS,
+        self,
+        result_keys: tuple = BASE_PLAYLIST_RESULT_KEYS,
     ) -> None:
         super().__init__()
         self.result_keys = result_keys
@@ -444,7 +467,9 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         return f"UU{channel_id[2:]}"
 
     def _next_page_download(
-            self, next_page_token: str, playlist_id: str
+        self,
+        next_page_token: str,
+        playlist_id: str,
     ) -> PlaylistVideoData:
         """
         Downloads the next page of videos from the specified playlist and returns the
@@ -467,7 +492,10 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         return preprocess_playlist(response)
 
     def get_videos_from_channel(
-            self, video_id: str, video_number_limit: int = 1000
+        self,
+        video_id: str,
+        video_info_limit: int,
+        max_results_per_page: int = 20,
     ) -> list[VideoData]:
         """
         Returns a list of VideoData objects containing the video information from the
@@ -475,7 +503,8 @@ class ChannelInfoDownloader(InfoDownloaderBase):
 
         Args:
             video_id (str): The ID of a video in the channel.
-            video_number_limit (int): The maximum number of videos to be returned.
+            max_results_per_page (int): Number of videos returned in each playlist page.
+            video_info_limit (int): Limit of requested videos from channel
 
         Returns:
             list[VideoData]: A list of VideoData objects containing the video
@@ -483,24 +512,78 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         """
         playlist_id = self._get_user_playlist_id_from_video(video_id)
         request = self.youtube.playlistItems().list(
-            part=",".join(self.result_keys), playlistId=playlist_id
+            part=",".join(self.result_keys),
+            playlistId=playlist_id,
+            maxResults=max_results_per_page,
         )
         response = request.execute()
         playlist_data = preprocess_playlist(response)
         video_data: list[VideoData] = [*playlist_data.video_data]
         next_page_token = playlist_data.next_page_token
 
-        while next_page_token is not None and len(video_data) < video_number_limit:
+        while next_page_token and len(video_data) < video_info_limit:
             playlist_data = self._next_page_download(
-                next_page_token=next_page_token, playlist_id=playlist_id
+                next_page_token=next_page_token,
+                playlist_id=playlist_id,
             )
             video_data.extend(playlist_data.video_data)
 
         return video_data
 
 
+VideoDataList = list[VideoData | VideoDataWithStats]
+
+
+class VideoDataParserInterface(Protocol):
+    def select_videos_by_date(
+        self, video_data_list: VideoDataList, date_from: str, date_to
+    ) -> list[VideoData | VideoDataWithStats]:
+        ...
+
+
+class VideoDataParser:
+    @staticmethod
+    def prepare_date_from_user(date: str) -> datetime:
+        return datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=pytz.utc)
+
+    @staticmethod
+    def prepare_video_date(date: str) -> datetime:
+        return datetime_from_iso_str(date)
+
+    @staticmethod
+    def check_date(
+        video_data_date: datetime,
+        date_from: datetime | None,
+        date_to: datetime | None,
+    ) -> bool:
+        if not video_data_date:
+            return False
+
+        if date_from and video_data_date < date_from:
+            return False
+
+        if date_to and video_data_date > date_to:
+            return False
+
+        return True
+
+    def select_videos_by_date(
+        self, video_data_list: VideoDataList, date_from: str | None, date_to: str | None
+    ) -> VideoDataList:
+        date_from = self.prepare_date_from_user(date_from) if date_from else None
+        date_to = self.prepare_date_from_user(date_to) if date_to else None
+
+        return [
+            video_data
+            for video_data in video_data_list
+            if self.check_date(
+                video_data_date=self.prepare_video_date(video_data.published_at),
+                date_from=date_from,
+                date_to=date_to,
+            )
+        ]
+
+
 if __name__ == "__main__":
     channel = ChannelInfoDownloader()
-    pprint.pprint(
-        channel._get_user_playlist_id_from_video(video_id="1fUpkq7urDU")
-    )
+    pprint.pprint(channel._get_user_playlist_id_from_video(video_id="1fUpkq7urDU"))

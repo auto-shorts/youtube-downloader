@@ -6,7 +6,11 @@ from abc import ABC, abstractmethod
 class MostReplayedNotPresentException(Exception):
     """Exception thrown when video doesn't have most replayed moments avaible"""
 
-    def __init__(self, message="Video doesn't have most replayed moments avaible", video_id: str = None):
+    def __init__(
+        self,
+        message="Video doesn't have most replayed moments avaible",
+        video_id: str = None,
+    ):
         self.message = message
         if video_id:
             self.message = f"{message}. Video id: {video_id}"
@@ -41,16 +45,15 @@ class MostWatchedMomentsDownloader(MostWatchedMomentsDownloaderBase):
             # print(timeframe)
             timeframe_data = timeframe["heatMarkerRenderer"]
 
-            one_timeframe_cleaned = {"time_start_ms": timeframe_data[
-                "timeRangeStartMillis"
-            ], "time_end_ms": (
+            one_timeframe_cleaned = {
+                "time_start_ms": timeframe_data["timeRangeStartMillis"],
+                "time_end_ms": (
                     timeframe_data["timeRangeStartMillis"]
                     + timeframe_data["markerDurationMillis"]
-            ), "peroid_duration_ms": timeframe_data[
-                "markerDurationMillis"
-            ], "intensity_score": timeframe_data[
-                "heatMarkerIntensityScoreNormalized"
-            ]}
+                ),
+                "peroid_duration_ms": timeframe_data["markerDurationMillis"],
+                "intensity_score": timeframe_data["heatMarkerIntensityScoreNormalized"],
+            }
             cleaned_timeframes.append(one_timeframe_cleaned)
 
         return pd.DataFrame(cleaned_timeframes)
