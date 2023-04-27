@@ -10,15 +10,24 @@ from loguru import logger
 from pydantic import BaseModel
 from pytube import YouTube
 
-from auto_shorts.data_upload.video_data_upload import (AwsS3DataUploader,
-                                                       DataUploaderInterface)
+from auto_shorts.data_upload.video_data_upload import (
+    AwsS3DataUploader,
+    DataUploaderInterface,
+)
 from auto_shorts.utils import timeit
 from auto_shorts.video_download.download_info import (
-    ChannelInfoDownloader, ChannelInfoDownloaderInterface, VideoData,
-    VideoDataList, VideoDataParser, VideoDataParserInterface,
-    VideoDataWithStats)
+    ChannelInfoDownloader,
+    ChannelInfoDownloaderInterface,
+    VideoData,
+    VideoDataList,
+    VideoDataParser,
+    VideoDataParserInterface,
+    VideoDataWithStats,
+)
 from auto_shorts.video_download.most_watched_moments import (
-    MostReplayedNotPresentException, MostWatchedMomentsDownloader)
+    MostReplayedNotPresentException,
+    MostWatchedMomentsDownloader,
+)
 
 base_data_path = Path(__file__).parents[2] / "data"
 
@@ -82,9 +91,13 @@ class YoutubeVideoDownloader:
         VideoDataWithMoments
             A `VideoDataWithMoments` object containing the video's metadata and the most watched moments.
         """
-        moment_downloader = MostWatchedMomentsDownloader(video_id=video_data.id)
-        most_watched_moments = moment_downloader.get_most_watched_moments().to_dict(
-            orient="records"
+        moment_downloader = MostWatchedMomentsDownloader(
+            video_id=video_data.id
+        )
+        most_watched_moments = (
+            moment_downloader.get_most_watched_moments().to_dict(
+                orient="records"
+            )
         )
         return VideoDataWithMoments(
             **video_data.dict(), most_watched_moments=most_watched_moments
@@ -162,7 +175,9 @@ class YoutubeVideoDownloader:
             logger.error(e)
             return
 
-        os.makedirs(download_params.save_path / video_data_full.id, exist_ok=True)
+        os.makedirs(
+            download_params.save_path / video_data_full.id, exist_ok=True
+        )
         data_save_path = download_params.save_path / video_data_full.id
         with open(data_save_path / "video_data.json", "w") as file:
             json.dump(
@@ -178,9 +193,7 @@ class YoutubeVideoDownloader:
         )
 
         if download_params.to_s3:
-            base_s3_file_path = (
-                f"data/videos/{video_data_full.channel_id}/{video_data_full.id}"
-            )
+            base_s3_file_path = f"data/videos/{video_data_full.channel_id}/{video_data_full.id}"
             self.data_uploader.upload_file(
                 file_path=f"{data_save_path}/video_data.json",
                 object_name=f"{base_s3_file_path}/video_data.json",
@@ -238,7 +251,9 @@ class MultipleVideoDownloader:
         self.channel_info_downloader = channel_info_downloader
         self.video_data_parser = video_data_parser
 
-    def get_video_data(self, video_id: str, video_info_limit: int) -> list[VideoData]:
+    def get_video_data(
+        self, video_id: str, video_info_limit: int
+    ) -> list[VideoData]:
         """
         Collects video data for a given video ID and returns a list of VideoData objects.
 
@@ -350,7 +365,9 @@ class MultipleVideoDownloader:
             _ = await asyncio.gather(
                 *[
                     self.downloader.download_async(
-                        DownloadParams(video_data=video_data, **download_config.dict()),
+                        DownloadParams(
+                            video_data=video_data, **download_config.dict()
+                        ),
                     )
                     for video_data in video_chunk
                 ]
