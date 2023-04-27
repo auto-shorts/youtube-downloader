@@ -40,7 +40,7 @@ jobs:
     - name: Black
       run: poetry run python -m black --line-length 79 --check .
     - name: Isort
-      run: poetry run python -m isort --profile black . --check-only
+      run: poetry run python -m isort --profile black --line-length 79 --check-only .
     - name: Test with pytest
       run: |
         poetry run pytest
