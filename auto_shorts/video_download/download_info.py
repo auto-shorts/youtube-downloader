@@ -3,14 +3,13 @@ import os
 import pprint
 from datetime import datetime
 from pathlib import Path
-from typing import Any
-from typing import Protocol
+from typing import Any, Protocol
 
 import googleapiclient.discovery
 import googleapiclient.errors
+import pytz
 from loguru import logger
 from pydantic import BaseModel
-import pytz
 
 from auto_shorts.config import GCP_API_KEY
 

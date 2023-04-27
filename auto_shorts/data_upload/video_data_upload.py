@@ -18,9 +18,9 @@ class AwsS3DataUploader:
         self.bucket = bucket
 
     def upload_file(
-            self,
-            file_path: str,
-            object_name: str,
+        self,
+        file_path: str,
+        object_name: str,
     ) -> bool:
         """
         Function taken from aws docs. Upload a file to an S3 bucket
@@ -50,6 +50,7 @@ class GoogleDocsDataUploader:
     Stopped working on it because student's account doesn't
     allow getting GCP API credentials.
     """
+
     def __init__(self, credentials, parent_folder_id: str):
         self.service = build("drive", "v3", credentials=credentials)
         self.parent_folder_id = parent_folder_id
@@ -61,11 +62,11 @@ class GoogleDocsDataUploader:
     def create_nested_folders(self, folder_list: list[str]) -> str:
         for folder in folder_list:
             q = (
-                    "'"
-                    + self.parent_folder_id
-                    + "' in parents and name='"
-                    + folder
-                    + "' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                "'"
+                + self.parent_folder_id
+                + "' in parents and name='"
+                + folder
+                + "' and mimeType='application/vnd.google-apps.folder' and trashed=false"
             )
             files = self.service.files().list(q=q).execute().get("files")
             if not files:
@@ -85,25 +86,33 @@ class GoogleDocsDataUploader:
 
         return parent_folder_id
 
-    def _upload_single_file(self, file_path: str, folder_id: str, file_save_name: str | None) -> str:
+    def _upload_single_file(
+        self, file_path: str, folder_id: str, file_save_name: str | None
+    ) -> str:
         if not file_save_name:
             file_save_name = os.path.basename(file_path)
 
         file_metadata = {
-            'name': file_save_name,
-            'parents': [folder_id],
+            "name": file_save_name,
+            "parents": [folder_id],
         }
         media = MediaFileUpload(file_path, resumable=True)
-        file = self.service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        file = (
+            self.service.files()
+            .create(body=file_metadata, media_body=media, fields="id")
+            .execute()
+        )
         return file.get("id")
 
     def upload_file(
-            self,
-            file_path: str,
-            object_name: str | None = None,
+        self,
+        file_path: str,
+        object_name: str | None = None,
     ) -> bool:
         dir_path, file_name = os.path.split(object_name)
         folder_list = self._get_split_path(dir_path)
         parent_folder_id = self.create_nested_folders(folder_list)
-        _ = self._upload_single_file(file_path=file_path, folder_id=parent_folder_id, file_save_name=file_name)
+        _ = self._upload_single_file(
+            file_path=file_path, folder_id=parent_folder_id, file_save_name=file_name
+        )
         return True  # TODO add error handling - need to find that error first XD

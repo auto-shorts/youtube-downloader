@@ -1,7 +1,6 @@
 import asyncio
-from functools import wraps, partial
-from functools import wraps
 import time
+from functools import partial, wraps
 
 
 def to_async(func):
