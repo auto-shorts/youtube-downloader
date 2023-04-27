@@ -4,9 +4,7 @@ from auto_shorts.video_download.download_info import (
     VideoDataWithStats,
     VideoInfoDownloader,
 )
-from auto_shorts.video_download.most_watched_moments import (
-    MostWatchedMomentsDownloader,
-)
+from auto_shorts.video_download.most_watched_moments import MostWatchedMomentsDownloader
 
 
 class VideoToDownloadChooseBase(ABC):
