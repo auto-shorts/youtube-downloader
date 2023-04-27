@@ -49,15 +49,15 @@ class DownloadParams(DownloadConfig):
 
 class DownloaderInterface(Protocol):
     def download(self, download_params: DownloadParams):
-        """Enforce download method"""
+        """Enforce download method."""
 
     async def download_async(self, download_params: DownloadParams):
-        """Enforce async download method"""
+        """Enforce async download method."""
 
 
 class YoutubeVideoDownloader:
-    """
-    A class used to download YouTube videos and save them to a specified location.
+    """A class used to download YouTube videos and save them to a specified
+    location.
 
     Methods
     -------
@@ -70,7 +70,6 @@ class YoutubeVideoDownloader:
 
     _download_to_mp4(save_path: Path, vide_data_full: VideoDataWithMoments, filename: str) -> None:
         Download the video in mp4 format and save it to a specified location.
-
     """
 
     def __init__(self, data_uploader: DataUploaderInterface):
@@ -78,8 +77,7 @@ class YoutubeVideoDownloader:
 
     @staticmethod
     def download_moments(video_data: VideoData) -> VideoDataWithMoments:
-        """
-        Download the most watched moments of the video.
+        """Download the most watched moments of the video.
 
         Parameters
         ----------
@@ -109,8 +107,8 @@ class YoutubeVideoDownloader:
         vide_data_full: VideoDataWithMoments,
         filename: str,
     ) -> None:
-        """
-        Download the video in mp4 format and save it to a specified location.
+        """Download the video in mp4 format and save it to a specified
+        location.
 
         Parameters
         ----------
@@ -138,10 +136,10 @@ class YoutubeVideoDownloader:
             logger.error(f"Data needed to download not found. Key error: {e}")
 
     def download(self, download_params: DownloadParams) -> None:
-        """
-        Download video data and save it to the specified directory.
-        If `to_s3` flag is set to True, the downloaded files will also be uploaded to S3 bucket.
-        If `save_local` flag is set to False, the local files will be deleted.
+        """Download video data and save it to the specified directory. If
+        `to_s3` flag is set to True, the downloaded files will also be uploaded
+        to S3 bucket. If `save_local` flag is set to False, the local files
+        will be deleted.
 
         Parameters:
         -----------
@@ -213,9 +211,8 @@ class YoutubeVideoDownloader:
 
 
 class MultipleVideoDownloader:
-    """
-    A class for downloading multiple videos from a channel. It is designed to work with different types of downloaders
-    and video data parsers.
+    """A class for downloading multiple videos from a channel. It is designed
+    to work with different types of downloaders and video data parsers.
 
     Parameters:
         downloader (DownloaderInterface): The object responsible for downloading the video content.
@@ -254,8 +251,8 @@ class MultipleVideoDownloader:
     def get_video_data(
         self, video_id: str, video_info_limit: int
     ) -> list[VideoData]:
-        """
-        Collects video data for a given video ID and returns a list of VideoData objects.
+        """Collects video data for a given video ID and returns a list of
+        VideoData objects.
 
         Parameters:
             video_id (str): The ID of the video whose data should be collected.
@@ -274,8 +271,8 @@ class MultipleVideoDownloader:
     def select_videos_by_date(
         self, videos_data: VideoDataList, date_from: str, date_to: str
     ) -> VideoDataList:
-        """
-        Selects videos from the provided VideoDataList that fall within the specified date range.
+        """Selects videos from the provided VideoDataList that fall within the
+        specified date range.
 
         Parameters:
             videos_data (VideoDataList): A list of VideoData objects to filter.
@@ -298,8 +295,7 @@ class MultipleVideoDownloader:
         date_from: str = None,
         date_to: str = None,
     ) -> None:
-        """
-        Download videos from a YouTube channel.
+        """Download videos from a YouTube channel.
 
         Parameters:
             video_id: A string representing the channel ID.
@@ -339,8 +335,7 @@ class MultipleVideoDownloader:
         date_from: str = None,
         date_to: str = None,
     ):
-        """
-        Download videos asynchronousl from a YouTube channel.
+        """Download videos asynchronousl from a YouTube channel.
 
         Parameters:
             video_id: A string representing the channel ID.

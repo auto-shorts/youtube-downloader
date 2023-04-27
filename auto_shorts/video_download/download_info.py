@@ -49,8 +49,7 @@ class VideoDataWithStats(VideoData):
 
 
 class VideoCategory(BaseModel):
-    """
-    Class representing a video category on YouTube.
+    """Class representing a video category on YouTube.
 
     Attributes
     ----------
@@ -89,7 +88,6 @@ def safe_get(dct: dict, *keys) -> Any:
     -------
     Any
         The value at the end of the key traversal, or None if any of the keys are missing.
-
     """
     for key in keys:
         try:
@@ -151,9 +149,7 @@ def preprocess_playlist(playlist_response) -> PlaylistVideoData:
 
 
 class InfoDownloaderBase:
-    """
-    Base class for downloading data from the YouTube API.
-    """
+    """Base class for downloading data from the YouTube API."""
 
     def __init__(
         self,
@@ -161,8 +157,7 @@ class InfoDownloaderBase:
         api_service_name: str = "youtube",
         api_version: str = "v3",
     ) -> None:
-        """
-        Initializes a new instance of the InfoDownloaderBase class.
+        """Initializes a new instance of the InfoDownloaderBase class.
 
         Args:
             api_key (str): Your GCP API key.
@@ -175,8 +170,8 @@ class InfoDownloaderBase:
 
 
 class CategoryInfoDownloader(InfoDownloaderBase):
-    """
-    Class for downloading information about video categories from YouTube API.
+    """Class for downloading information about video categories from YouTube
+    API.
 
     Methods:
         video_categories_by_region(region_code save_path)
@@ -186,8 +181,8 @@ class CategoryInfoDownloader(InfoDownloaderBase):
     def video_categories_by_region(
         self, region_code: str, save_path: Path | None = None
     ) -> list[VideoCategory]:
-        """
-        Fetches video categories for the given region code from the YouTube API.
+        """Fetches video categories for the given region code from the YouTube
+        API.
 
         Parameters
         ----------
@@ -236,8 +231,7 @@ class CategoryInfoDownloader(InfoDownloaderBase):
 
 
 class VideoInfoDownloader(InfoDownloaderBase):
-    """
-    Downloads video information from YouTube using YouTube API v3.
+    """Downloads video information from YouTube using YouTube API v3.
 
     Args:
         result_keys (list): List of video information keys to download.
@@ -276,8 +270,7 @@ class VideoInfoDownloader(InfoDownloaderBase):
         video_category_id: int | None = None,
         max_results: int | None = 100,
     ) -> list[VideoDataWithStats]:
-        """
-        Returns the most popular videos for a given region or category.
+        """Returns the most popular videos for a given region or category.
 
         Args:
             region_code (str): ISO 3166-1 alpha-2 code of the region. Defaults
@@ -304,8 +297,7 @@ class VideoInfoDownloader(InfoDownloaderBase):
 
     @staticmethod
     def id_from_response(response: dict) -> list[str]:
-        """
-        Extracts video ids from a response dictionary.
+        """Extracts video ids from a response dictionary.
 
         Args:
             response (dict): The response dictionary.
@@ -319,8 +311,7 @@ class VideoInfoDownloader(InfoDownloaderBase):
         ]
 
     def download_video_data(self, video_id: str) -> list[VideoDataWithStats]:
-        """
-        Downloads video data for one or more video ids.
+        """Downloads video data for one or more video ids.
 
         Args:
             video_id (str): One or more video ids separated by comma.
@@ -342,8 +333,8 @@ class VideoInfoDownloader(InfoDownloaderBase):
         return video_data_preprocessed
 
     def video_id_by_page_token(self, page_token: str) -> tuple[list[str], str]:
-        """
-        Extracts video ids and a next page token from API using previous page token.
+        """Extracts video ids and a next page token from API using previous
+        page token.
 
         Args:
             page_token (str): A page token.
@@ -364,8 +355,7 @@ class VideoInfoDownloader(InfoDownloaderBase):
     def video_id_by_search_query(
         self, q: str, max_results: int = 100, order: str = "viewCount"
     ) -> list[str]:
-        """
-        Returns video ids for a search query.
+        """Returns video ids for a search query.
 
         Args:
             q (str): The search query.
@@ -399,8 +389,7 @@ class VideoInfoDownloader(InfoDownloaderBase):
     def video_data_by_search_query(
         self, q: str, max_results: int = 100, order: str = "viewCount"
     ) -> list[VideoDataWithStats]:
-        """
-        Returns video data for a search query.
+        """Returns video data for a search query.
 
         Args:
             q (str): The search query.
@@ -428,8 +417,7 @@ class ChannelInfoDownloaderInterface(Protocol):
 
 
 class ChannelInfoDownloader(InfoDownloaderBase):
-    """
-    A class for downloading information about videos from a YouTube channel.
+    """A class for downloading information about videos from a YouTube channel.
 
     Args:
         result_keys (tuple): A tuple of keys to be included in the request for the
@@ -459,8 +447,8 @@ class ChannelInfoDownloader(InfoDownloaderBase):
 
     @staticmethod
     def _get_user_playlist_id_from_video(video_id: str) -> str:
-        """
-        Returns the ID of the playlist containing the videos for the specified video ID.
+        """Returns the ID of the playlist containing the videos for the
+        specified video ID.
 
         Args:
             video_id (str): The ID of the video.
@@ -479,9 +467,8 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         next_page_token: str,
         playlist_id: str,
     ) -> PlaylistVideoData:
-        """
-        Downloads the next page of videos from the specified playlist and returns the
-        preprocessed data.
+        """Downloads the next page of videos from the specified playlist and
+        returns the preprocessed data.
 
         Args:
             next_page_token (str): The token representing the next page of videos.
@@ -505,9 +492,8 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         video_info_limit: int,
         max_results_per_page: int = 20,
     ) -> list[VideoData]:
-        """
-        Returns a list of VideoData objects containing the video information from the
-        specified channel up to the specified limit.
+        """Returns a list of VideoData objects containing the video information
+        from the specified channel up to the specified limit.
 
         Args:
             video_id (str): The ID of a video in the channel.

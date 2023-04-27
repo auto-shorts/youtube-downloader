@@ -553,6 +553,25 @@ files = [
 ]
 
 [[package]]
+name = "docformatter"
+version = "1.6.4"
+description = "Formats docstrings to follow PEP 257"
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "docformatter-1.6.4-py3-none-any.whl", hash = "sha256:d2fb49627f7707c6d323fe0eb36744df007119fa300b2e02b5aaa56bcefcbaea"},
+    {file = "docformatter-1.6.4.tar.gz", hash = "sha256:69838eca8b9f7106a28a4621b7f604a48260a5da6dba94a368d8060ac9315fe0"},
+]
+
+[package.dependencies]
+charset_normalizer = ">=3.0.0,<4.0.0"
+untokenize = ">=0.1.1,<0.2.0"
+
+[package.extras]
+tomli = ["tomli (>=2.0.0,<3.0.0)"]
+
+[[package]]
 name = "exceptiongroup"
 version = "1.1.1"
 description = "Backport of PEP 654 (exception groups)"
@@ -2655,6 +2674,17 @@ files = [
 ]
 
 [[package]]
+name = "untokenize"
+version = "0.1.1"
+description = "Transforms tokens into original source code (while preserving whitespace)."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "untokenize-0.1.1.tar.gz", hash = "sha256:3865dbbbb8efb4bb5eaa72f1be7f3e0be00ea8b7f125c69cbd1f5fda926f37a2"},
+]
+
+[[package]]
 name = "uri-template"
 version = "1.2.0"
 description = "RFC 6570 URI Template Processor"
@@ -2785,4 +2815,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "f1eaf5b46e92276fba929c178ed688c46da53dc9d2b9623f85a946e4cc766c56"
+content-hash = "0ad6e308a5855150ce7aacdde41dfec5ce4382e3229066c43b930d4364baf10f"
