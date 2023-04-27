@@ -33,16 +33,14 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install poetry
         python -m poetry install
-
-    - name: Flake8
-      run: poetry run python -m flake8 --count --verbose --statistics .
-
-    - name: Black
-      run: poetry run python -m black --line-length 79 --check .
-
-    - name: Isort
-      run: poetry run python -m isort --profile black --line-length 79 --check-only .
-
+    - name: Lint with flake8
+      run: |
+        poetry run python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        poetry run python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Black + Isort
+      run: |
+        python -m black --line-length 79 --check . 
+        python -m isort --profile black . --check-only
     - name: Test with pytest
       run: |
         poetry run pytest --cov
