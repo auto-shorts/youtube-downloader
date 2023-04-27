@@ -26,6 +26,7 @@ pytest = "^7.3.0"
 pytz = "^2023.3"
 flake8 = "^6.0.0"
 docformatter = "^1.6.4"
+pytest-cov = "^4.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
