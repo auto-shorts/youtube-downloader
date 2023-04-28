@@ -1,7 +1,6 @@
 import asyncio
-from functools import wraps, partial
-from functools import wraps
 import time
+from functools import partial, wraps
 
 
 def to_async(func):
@@ -22,7 +21,9 @@ def timeit(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         total_time = end_time - start_time
-        print(f"Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds")
+        print(
+            f"Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds"
+        )
         return result
 
     return timeit_wrapper

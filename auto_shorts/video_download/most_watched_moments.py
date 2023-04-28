@@ -1,6 +1,7 @@
-import requests
-import pandas as pd
 from abc import ABC, abstractmethod
+
+import pandas as pd
+import requests
 
 
 class MostReplayedNotPresentException(Exception):
@@ -52,7 +53,9 @@ class MostWatchedMomentsDownloader(MostWatchedMomentsDownloaderBase):
                     + timeframe_data["markerDurationMillis"]
                 ),
                 "peroid_duration_ms": timeframe_data["markerDurationMillis"],
-                "intensity_score": timeframe_data["heatMarkerIntensityScoreNormalized"],
+                "intensity_score": timeframe_data[
+                    "heatMarkerIntensityScoreNormalized"
+                ],
             }
             cleaned_timeframes.append(one_timeframe_cleaned)
 
@@ -63,7 +66,9 @@ class MostWatchedMomentsDownloader(MostWatchedMomentsDownloaderBase):
         if "error" in raw_results.keys():
             raise MostReplayedNotPresentException(video_id=self.video_id)
 
-        if raw_results["items"][0]["mostReplayed"] is None:  # check if 0 is okay
+        if (
+            raw_results["items"][0]["mostReplayed"] is None
+        ):  # check if 0 is okay
             raise MostReplayedNotPresentException(video_id=self.video_id)
 
         return self._preprocess_results(raw_results=raw_results)
