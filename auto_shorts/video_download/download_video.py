@@ -45,6 +45,7 @@ class DownloadConfig(BaseModel):
 
 class DownloadParams(DownloadConfig):
     video_data: VideoData
+    resolution: str = "480p"
 
 
 class DownloaderInterface(Protocol):
@@ -106,6 +107,7 @@ class YoutubeVideoDownloader:
         save_path: Path,
         vide_data_full: VideoDataWithMoments,
         filename: str,
+        resolution: str,
     ) -> None:
         """Download the video in mp4 format and save it to a specified
         location.
@@ -128,7 +130,7 @@ class YoutubeVideoDownloader:
         try:
             (
                 YouTube(f"https://www.youtube.com/watch?v={vide_data_full.id}")
-                .streams.filter(file_extension="mp4")
+                .streams.filter(file_extension="mp4", res=resolution)
                 .first()
                 .download(str(save_path), filename=filename)
             )
@@ -188,6 +190,7 @@ class YoutubeVideoDownloader:
             save_path=data_save_path,
             vide_data_full=video_data_full,
             filename="video.mp4",
+            resolution=download_params.resolution,
         )
 
         if download_params.to_s3:
@@ -380,7 +383,7 @@ if __name__ == "__main__":
         video_data_parser=video_parser_test,
     )
 
-    download_params = dict(
+    download_params_test = dict(
         video_id="1fUpkq7urDU",
         video_number_limit=10,
         video_info_limit=50,
@@ -402,4 +405,4 @@ if __name__ == "__main__":
         )
 
     # download_sync(download_params)
-    download_async(download_params)
+    download_async(download_params_test)
