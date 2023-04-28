@@ -107,7 +107,7 @@ class YoutubeVideoDownloader:
         save_path: Path,
         vide_data_full: VideoDataWithMoments,
         filename: str,
-        resolution: str
+        resolution: str,
     ) -> None:
         """Download the video in mp4 format and save it to a specified
         location.
@@ -190,7 +190,7 @@ class YoutubeVideoDownloader:
             save_path=data_save_path,
             vide_data_full=video_data_full,
             filename="video.mp4",
-            resolution=download_params.resolution
+            resolution=download_params.resolution,
         )
 
         if download_params.to_s3:
