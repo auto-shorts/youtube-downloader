@@ -48,14 +48,18 @@ class VideoDataParser:
         date_from: str | None,
         date_to: str | None,
     ) -> VideoDataList:
-        date_from = self.prepare_date_from_user(date_from) if date_from else None
+        date_from = (
+            self.prepare_date_from_user(date_from) if date_from else None
+        )
         date_to = self.prepare_date_from_user(date_to) if date_to else None
 
         return [
             video_data
             for video_data in video_data_list
             if self.check_date(
-                video_data_date=self.prepare_video_date(video_data.published_at),
+                video_data_date=self.prepare_video_date(
+                    video_data.published_at
+                ),
                 date_from=date_from,
                 date_to=date_to,
             )

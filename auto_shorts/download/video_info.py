@@ -6,9 +6,9 @@ from typing import Protocol
 
 import googleapiclient.discovery
 import googleapiclient.errors
-from youtube_transcript_api import YouTubeTranscriptApi
 from loguru import logger
 from pydantic import BaseModel
+from youtube_transcript_api import YouTubeTranscriptApi
 
 from auto_shorts.config import GCP_API_KEY
 from auto_shorts.utils import safe_get
@@ -112,9 +112,13 @@ def preprocess_playlist_item_response(video_data) -> VideoData:
 
 def preprocess_playlist(playlist_response) -> PlaylistVideoData:
     items = safe_get(playlist_response, "items")
-    video_data = [preprocess_playlist_item_response(video_data) for video_data in items]
+    video_data = [
+        preprocess_playlist_item_response(video_data) for video_data in items
+    ]
     next_page_token = safe_get(playlist_response, "nextPageToken")
-    return PlaylistVideoData(video_data=video_data, next_page_token=next_page_token)
+    return PlaylistVideoData(
+        video_data=video_data, next_page_token=next_page_token
+    )
 
 
 class InfoDownloaderBase:
@@ -275,7 +279,8 @@ class VideoInfoDownloader(InfoDownloaderBase):
             A list of video ids.
         """
         return [
-            safe_get(video_data, "id", "videoId") for video_data in response["items"]
+            safe_get(video_data, "id", "videoId")
+            for video_data in response["items"]
         ]
 
     def download_video_data(self, video_id: str) -> list[VideoDataWithStats]:
@@ -311,7 +316,9 @@ class VideoInfoDownloader(InfoDownloaderBase):
         Returns:
             A tuple of a list of video ids and the next page token.
         """
-        request = self.youtube.search().list(part="snippet", pageToken=page_token)
+        request = self.youtube.search().list(
+            part="snippet", pageToken=page_token
+        )
         response = request.execute()
         try:
             next_page_token = response["nextPageToken"]
@@ -346,7 +353,9 @@ class VideoInfoDownloader(InfoDownloaderBase):
         next_page_token = response["nextPageToken"]
 
         while len(video_id) < max_results:
-            tmp_video_id, next_page_token = self.video_id_by_page_token(next_page_token)
+            tmp_video_id, next_page_token = self.video_id_by_page_token(
+                next_page_token
+            )
             video_id.extend(tmp_video_id)
 
         return video_id

@@ -37,7 +37,9 @@ class AwsS3DataUploader:
         # Upload the file
         s3_client = boto3.client("s3")
         try:
-            response = s3_client.upload_file(file_path, self.bucket, object_name)
+            response = s3_client.upload_file(
+                file_path, self.bucket, object_name
+            )
         except ClientError as e:
             logger.error(e)
             return False
@@ -117,4 +119,6 @@ class GoogleDocsDataUploader:
             folder_id=parent_folder_id,
             file_save_name=file_name,
         )
-        return True  # TODO add error handling - need to find that error first XD
+        return (
+            True  # TODO add error handling - need to find that error first XD
+        )

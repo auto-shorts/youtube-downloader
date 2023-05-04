@@ -28,7 +28,10 @@ class OneLanguageTranscription(Language):
 
     def transcription_to_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame(
-            [transcription_item.dict() for transcription_item in self.transcription]
+            [
+                transcription_item.dict()
+                for transcription_item in self.transcription
+            ]
         ).sort_values(by="time_start_ms", ascending=True)
 
 
@@ -54,7 +57,9 @@ class YoutubeTranscription:
         for transcript in transcript_list:
             main_language_codes.append(transcript.language_code)
 
-            if not all(x == main_language_codes[0] for x in main_language_codes):
+            if not all(
+                x == main_language_codes[0] for x in main_language_codes
+            ):
                 """
                 This will allow to check if there is a situation, when
                 there are 2 main languages. I haven't managed to reproduce it,
@@ -78,7 +83,8 @@ class YoutubeTranscription:
             transcription_items = [
                 TranscriptionItem(
                     time_start_s=transcript_part["start"],
-                    time_end_s=transcript_part["duration"] + transcript_part["start"],
+                    time_end_s=transcript_part["duration"]
+                    + transcript_part["start"],
                     period_duration_s=transcript_part["duration"],
                     text=transcript_part["text"],
                 )
@@ -106,6 +112,7 @@ class YoutubeTranscription:
             transcription_results[language_key] = one_language_transcription
 
         return TranscriptionData(transcriptions=transcription_results)
+
 
 if __name__ == "__main__":
     video_id_test = "t7-nb1wlnyA"
