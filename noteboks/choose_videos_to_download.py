@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 
-from auto_shorts.video_download.download_info import (
+from auto_shorts.download.video_info import (
     VideoDataWithStats,
     VideoInfoDownloader,
 )
-from auto_shorts.video_download.most_watched_moments import (
+from auto_shorts.download.most_watched_moments import (
     MostWatchedMomentsDownloader,
 )
 
@@ -27,9 +27,7 @@ class VideoToDownloadChooser(VideoToDownloadChooseBase):
         videos_to_download = []
 
         for video in self.videos:
-            moments_downloader = MostWatchedMomentsDownloader(
-                video_id=video.id
-            )
+            moments_downloader = MostWatchedMomentsDownloader(video_id=video.id)
             if moments_downloader.contain_most_watched():
                 videos_to_download.append(video)
 
