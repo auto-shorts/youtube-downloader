@@ -1,6 +1,6 @@
 import pytest
 
-from auto_shorts.video_download.download_info import safe_get
+from auto_shorts.utils import safe_get
 
 
 @pytest.mark.parametrize(

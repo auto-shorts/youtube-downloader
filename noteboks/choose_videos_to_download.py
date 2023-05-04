@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 
-from auto_shorts.video_download.download_info import (
+from auto_shorts.download.most_watched_moments import (
+    MostWatchedMomentsDownloader,
+)
+from auto_shorts.download.video_info import (
     VideoDataWithStats,
     VideoInfoDownloader,
-)
-from auto_shorts.video_download.most_watched_moments import (
-    MostWatchedMomentsDownloader,
 )
 
 

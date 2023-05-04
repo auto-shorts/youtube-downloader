@@ -14,20 +14,22 @@ from auto_shorts.data_upload.video_data_upload import (
     AwsS3DataUploader,
     DataUploaderInterface,
 )
-from auto_shorts.utils import timeit
-from auto_shorts.video_download.download_info import (
-    ChannelInfoDownloader,
-    ChannelInfoDownloaderInterface,
-    VideoData,
-    VideoDataList,
-    VideoDataParser,
-    VideoDataParserInterface,
-    VideoDataWithStats,
-)
-from auto_shorts.video_download.most_watched_moments import (
+from auto_shorts.download.most_watched_moments import (
     MostReplayedNotPresentException,
     MostWatchedMomentsDownloader,
 )
+from auto_shorts.download.video_info import (
+    ChannelInfoDownloader,
+    ChannelInfoDownloaderInterface,
+    VideoData,
+    VideoDataWithStats,
+)
+from auto_shorts.preprocess.parse_response import (
+    VideoDataList,
+    VideoDataParser,
+    VideoDataParserInterface,
+)
+from auto_shorts.utils import timeit
 
 base_data_path = Path(__file__).parents[2] / "data"
 

@@ -1,17 +1,17 @@
 import json
 import os
 import pprint
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Protocol
 
 import googleapiclient.discovery
 import googleapiclient.errors
-import pytz
 from loguru import logger
 from pydantic import BaseModel
+from youtube_transcript_api import YouTubeTranscriptApi
 
 from auto_shorts.config import GCP_API_KEY
+from auto_shorts.utils import safe_get
 
 BASE_RESULT_KEYS = (
     "contentDetails",
@@ -72,33 +72,6 @@ class VideoCategory(BaseModel):
 class PlaylistVideoData(BaseModel):
     video_data: list[VideoData]
     next_page_token: str | None
-
-
-def safe_get(dct: dict, *keys) -> Any:
-    """Safely retrieve a value from a nested dictionary.
-
-    Parameters
-    ----------
-    dct : dict
-        A dictionary containing nested keys and values.
-    *keys : Any
-        One or more keys to use when traversing the dictionary.
-
-    Returns
-    -------
-    Any
-        The value at the end of the key traversal, or None if any of the keys are missing.
-    """
-    for key in keys:
-        try:
-            dct = dct[key]
-        except KeyError:
-            return None
-    return dct
-
-
-def datetime_from_iso_str(date: str) -> datetime | None:
-    return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%z") if date else None
 
 
 def preprocess_video_response(video_data) -> VideoData:
@@ -323,6 +296,7 @@ class VideoInfoDownloader(InfoDownloaderBase):
             part=",".join(self.result_keys), id=video_id
         )
         response = request.execute()["items"]
+        pprint.pprint(response)
         video_data_preprocessed = []
 
         for video_data in response:
@@ -525,68 +499,8 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         return video_data
 
 
-VideoDataList = list[VideoData | VideoDataWithStats]
-
-
-class VideoDataParserInterface(Protocol):
-    def select_videos_by_date(
-        self, video_data_list: VideoDataList, date_from: str, date_to
-    ) -> list[VideoData | VideoDataWithStats]:
-        ...
-
-
-class VideoDataParser:
-    @staticmethod
-    def prepare_date_from_user(date: str) -> datetime:
-        return datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=pytz.utc)
-
-    @staticmethod
-    def prepare_video_date(date: str) -> datetime:
-        return datetime_from_iso_str(date)
-
-    @staticmethod
-    def check_date(
-        video_data_date: datetime,
-        date_from: datetime | None,
-        date_to: datetime | None,
-    ) -> bool:
-        if not video_data_date:
-            return False
-
-        if date_from and video_data_date < date_from:
-            return False
-
-        if date_to and video_data_date > date_to:
-            return False
-
-        return True
-
-    def select_videos_by_date(
-        self,
-        video_data_list: VideoDataList,
-        date_from: str | None,
-        date_to: str | None,
-    ) -> VideoDataList:
-        date_from = (
-            self.prepare_date_from_user(date_from) if date_from else None
-        )
-        date_to = self.prepare_date_from_user(date_to) if date_to else None
-
-        return [
-            video_data
-            for video_data in video_data_list
-            if self.check_date(
-                video_data_date=self.prepare_video_date(
-                    video_data.published_at
-                ),
-                date_from=date_from,
-                date_to=date_to,
-            )
-        ]
-
-
 if __name__ == "__main__":
-    channel = ChannelInfoDownloader()
-    pprint.pprint(
-        channel._get_user_playlist_id_from_video(video_id="1fUpkq7urDU")
-    )
+    info_downloader_test = VideoInfoDownloader()
+    video_id_test = "1WEAJ-DFkHE"
+    pprint.pprint(YouTubeTranscriptApi.get_transcript(video_id_test))
+    # pprint.pprint(info_downloader_test.download_video_data("1WEAJ-DFkHE"))
