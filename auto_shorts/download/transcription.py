@@ -43,6 +43,11 @@ class YoutubeTranscriptionInterface(Protocol):
     def get_transcription(self, video_id: str) -> TranscriptionData:
         ...
 
+    async def get_transcription_async(
+        self, video_id: str
+    ) -> TranscriptionData:
+        ...
+
 
 class YoutubeTranscription:
     def __init__(self):
@@ -113,8 +118,13 @@ class YoutubeTranscription:
 
         return TranscriptionData(transcriptions=transcription_results)
 
+    async def get_transcription_async(
+        self, video_id: str
+    ) -> TranscriptionData:
+        return self.get_transcription(video_id=video_id)
+
 
 if __name__ == "__main__":
     video_id_test = "t7-nb1wlnyA"
     trans = YoutubeTranscription()
-    pprint(trans.get_transcription(video_id_test).dict())
+    pprint(trans.get_transcription(video_id_test))

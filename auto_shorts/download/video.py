@@ -10,10 +10,6 @@ from loguru import logger
 from pydantic import BaseModel
 from pytube import YouTube
 
-from auto_shorts.data_upload.video_data_upload import (
-    AwsS3DataUploader,
-    DataUploaderInterface,
-)
 from auto_shorts.download.most_watched_moments import (
     MostReplayedNotPresentException,
     MostWatchedMomentsDownloader,
@@ -28,6 +24,10 @@ from auto_shorts.preprocess.parse_response import (
     VideoDataList,
     VideoDataParser,
     VideoDataParserInterface,
+)
+from auto_shorts.upload.video_data_upload import (
+    AwsS3DataUploader,
+    DataUploaderInterface,
 )
 from auto_shorts.utils import timeit
 
@@ -139,6 +139,20 @@ class YoutubeVideoDownloader:
         except KeyError as e:
             logger.error(f"Data needed to download not found. Key error: {e}")
 
+    async def _download_to_mp4_async(
+        self,
+        save_path: Path,
+        vide_data_full: VideoDataWithMoments,
+        filename: str,
+        resolution: str,
+    ) -> None:
+        self._download_to_mp4(
+            vide_data_full=vide_data_full,
+            filename=filename,
+            resolution=resolution,
+            save_path=save_path,
+        )
+
     def download(self, download_params: DownloadParams) -> None:
         """Download video data and save it to the specified directory. If
         `to_s3` flag is set to True, the downloaded files will also be uploaded
@@ -215,7 +229,7 @@ class YoutubeVideoDownloader:
         )
 
 
-class MultipleVideoDownloader:
+class VideoFromChannelDownloader:
     """A class for downloading multiple videos from a channel. It is designed
     to work with different types of downloaders and video data parsers.
 
@@ -291,7 +305,7 @@ class MultipleVideoDownloader:
             video_data_list=videos_data, date_from=date_from, date_to=date_to
         )
 
-    def download_videos_from_channel(
+    def download(
         self,
         video_id: str,
         download_config: DownloadConfig = DownloadConfig(),
@@ -330,7 +344,7 @@ class MultipleVideoDownloader:
             )
             self.downloader.download(download_params=download_params)
 
-    async def download_videos_from_channel_async(
+    async def download_async(
         self,
         video_id: str,
         download_config: DownloadConfig = DownloadConfig(),
@@ -340,7 +354,7 @@ class MultipleVideoDownloader:
         date_from: str = None,
         date_to: str = None,
     ):
-        """Download videos asynchronousl from a YouTube channel.
+        """Download videos asynchronously from a YouTube channel.
 
         Parameters:
             video_id: A string representing the channel ID.
@@ -379,7 +393,7 @@ if __name__ == "__main__":
     downloader_test = YoutubeVideoDownloader(data_uploader=uploader_test)
     channel_info_downloader_test = ChannelInfoDownloader()
     video_parser_test = VideoDataParser()
-    m_downloader = MultipleVideoDownloader(
+    m_downloader = VideoFromChannelDownloader(
         downloader=downloader_test,
         channel_info_downloader=channel_info_downloader_test,
         video_data_parser=video_parser_test,
@@ -401,9 +415,7 @@ if __name__ == "__main__":
     @timeit
     def download_async(params: dict):
         asyncio.run(
-            m_downloader.download_videos_from_channel_async(
-                **params, async_videos_block_size=10
-            )
+            m_downloader.download_async(**params, async_videos_block_size=10)
         )
 
     # download_sync(download_params)
