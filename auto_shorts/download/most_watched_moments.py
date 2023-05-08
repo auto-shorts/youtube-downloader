@@ -20,20 +20,16 @@ class MostReplayedNotPresentException(Exception):
 
 class MostWatchedMomentsDownloaderBase(ABC):
     @abstractmethod
-    def __init__(self, video_id: str) -> None:
-        """Ensure video_id param exists"""
-
-    @abstractmethod
-    def get_most_watched_moments(self):
+    def get_most_watched_moments(self, video_id: str):
         """Main function"""
 
 
 class MostWatchedMomentsDownloader(MostWatchedMomentsDownloaderBase):
-    def __init__(self, video_id: str) -> None:
-        self.video_id = video_id
-
-    def _get_data_from_api(self) -> dict:
-        url = f"https://yt.lemnoslife.com/videos?part=mostReplayed&id={self.video_id}"
+    @staticmethod
+    def _get_data_from_api(video_id) -> dict:
+        url = (
+            f"https://yt.lemnoslife.com/videos?part=mostReplayed&id={video_id}"
+        )
         return requests.get(url).json()
 
     @staticmethod
@@ -61,15 +57,15 @@ class MostWatchedMomentsDownloader(MostWatchedMomentsDownloaderBase):
 
         return pd.DataFrame(cleaned_timeframes)
 
-    def get_most_watched_moments(self) -> pd.DataFrame:
-        raw_results = self._get_data_from_api()
+    def get_most_watched_moments(self, video_id: str) -> pd.DataFrame:
+        raw_results = self._get_data_from_api(video_id=video_id)
         if "error" in raw_results.keys():
-            raise MostReplayedNotPresentException(video_id=self.video_id)
+            raise MostReplayedNotPresentException(video_id=video_id)
 
         if (
             raw_results["items"][0]["mostReplayed"] is None
         ):  # check if 0 is okay
-            raise MostReplayedNotPresentException(video_id=self.video_id)
+            raise MostReplayedNotPresentException(video_id=video_id)
 
         return self._preprocess_results(raw_results=raw_results)
 

@@ -79,7 +79,7 @@ class YoutubeTranscription:
         Thing to consider later - add possibility to translate.
         For now, it would take much time and is not needed
         """
-        transcript_list = trans._list_transcripts(video_id)
+        transcript_list = self._list_transcripts(video_id)
         self._validate_transcripts(transcript_list)
 
         transcription_results = {}
