@@ -7,7 +7,6 @@ from typing import Protocol
 
 import numpy as np
 from loguru import logger
-from pydantic import BaseModel
 from pytube import YouTube
 from youtube_transcript_api import TranscriptsDisabled
 
@@ -15,17 +14,22 @@ from auto_shorts.download.channel import (
     ChannelInfoDownloader,
     ChannelInfoDownloaderInterface,
 )
+from auto_shorts.download.models.transcription import TranscriptionData
+from auto_shorts.download.models.video import (
+    DownloadConfig,
+    DownloadParams,
+    VideoDataFull,
+)
+from auto_shorts.download.models.video_info import VideoData
 from auto_shorts.download.most_watched_moments import (
     MostReplayedNotPresentException,
     MostWatchedMomentsDownloader,
     MostWatchedMomentsDownloaderBase,
 )
 from auto_shorts.download.transcription import (
-    TranscriptionData,
     YoutubeTranscription,
     YoutubeTranscriptionInterface,
 )
-from auto_shorts.download.video_info import VideoData, VideoDataWithStats
 from auto_shorts.preprocess.parse_response import (
     VideoDataList,
     VideoDataParser,
@@ -37,23 +41,6 @@ from auto_shorts.upload.video_data_upload import (
 )
 
 base_data_path = Path(__file__).parents[2] / "data"
-
-
-class VideoDataFull(VideoDataWithStats):
-    most_watched_moments: list[dict]
-    transcription: TranscriptionData | None
-
-
-class DownloadConfig(BaseModel):
-    save_path: Path = base_data_path
-    bucket: str = "auto-shorts"
-    to_s3: bool = False
-    save_local: bool = True
-
-
-class DownloadParams(DownloadConfig):
-    video_data: VideoData
-    resolution: str = "480p"
 
 
 class DownloaderInterface(Protocol):
@@ -168,7 +155,7 @@ class YoutubeVideoDownloader:
             save_path=save_path,
         )
 
-    def download(self, download_params: DownloadParams) -> None:
+    def download(self, download_params: DownloadParams) -> bool:
         """Download video data and save it to the specified directory. If
         `to_s3` flag is set to True, the downloaded files will also be uploaded
         to S3 bucket. If `save_local` flag is set to False, the local files
@@ -202,7 +189,7 @@ class YoutubeVideoDownloader:
         )
         if not most_watched_moments:
             # we don't need movies without most watched moments for now
-            return
+            return False
 
         transcription = self.download_transcription(
             download_params.video_data.id
@@ -245,8 +232,10 @@ class YoutubeVideoDownloader:
         if not download_params.save_local:
             shutil.rmtree(data_save_path)
 
-    async def download_async(self, download_params: DownloadParams) -> None:
-        self.download(
+        return True
+
+    async def download_async(self, download_params: DownloadParams) -> bool:
+        return self.download(
             download_params=download_params,
         )
 
@@ -359,6 +348,7 @@ class VideoFromChannelDownloader:
             if video_number_limit < len(videos_data)
             else videos_data
         )
+
         logger.info(f"Downloading {len(videos_data)} after comparing dates")
         for video_data in videos_data:
             download_params = DownloadParams(
@@ -423,7 +413,7 @@ if __name__ == "__main__":
 
     download_params_test = dict(
         video_id="1fUpkq7urDU",
-        video_number_limit=20,
+        video_number_limit=10,
         video_info_limit=50,
         download_config=DownloadConfig(to_s3=True, save_local=True),
         # date_from="2022-10-01",

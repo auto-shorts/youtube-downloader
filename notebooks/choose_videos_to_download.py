@@ -1,12 +1,10 @@
 from abc import ABC, abstractmethod
 
+from auto_shorts.download.models.video_info import VideoDataWithStats
 from auto_shorts.download.most_watched_moments import (
     MostWatchedMomentsDownloader,
 )
-from auto_shorts.download.video_info import (
-    VideoDataWithStats,
-    VideoInfoDownloader,
-)
+from auto_shorts.download.video_info import VideoInfoDownloader
 
 
 class VideoToDownloadChooseBase(ABC):

@@ -1,26 +1,16 @@
 from pprint import pprint
 from typing import Protocol
 
-from pydantic import BaseModel
-
+from auto_shorts.db.upload import upload_channel_info
+from auto_shorts.download.models.channel import ChannelInfo
+from auto_shorts.download.models.video_info import PlaylistVideoData, VideoData
 from auto_shorts.download.video_info import (
     BASE_PLAYLIST_RESULT_KEYS,
     InfoDownloaderBase,
-    PlaylistVideoData,
-    VideoData,
     VideoInfoDownloader,
     preprocess_playlist,
 )
 from auto_shorts.utils import safe_get
-
-
-class ChannelInfo(BaseModel):
-    channel_id: str
-    title: str
-    description: str
-    custom_url: str | None
-    views: int
-    subscribers: int
 
 
 class ChannelInfoDownloaderInterface(Protocol):
@@ -30,6 +20,9 @@ class ChannelInfoDownloaderInterface(Protocol):
         video_info_limit: int,
         max_results_per_page: int = 20,
     ) -> list[VideoData]:
+        ...
+
+    def get_info(self, channel_id: str) -> ChannelInfo:
         ...
 
 
@@ -158,7 +151,11 @@ class ChannelInfoDownloader(InfoDownloaderBase):
             subscribers=statistics["subscriberCount"],
         )
 
+    def push_info_to_db(self, channel_id: str) -> None:
+        channel_info = self.get_info(channel_id)
+        upload_channel_info(channel_info)
+
 
 if __name__ == "__main__":
     downloader_test = ChannelInfoDownloader()
-    pprint(downloader_test.get_info("UCjXfkj5iapKHJrhYfAF9ZGg"))
+    downloader_test.push_info_to_db("UCjXfkj5iapKHJrhYfAF9ZGg")
