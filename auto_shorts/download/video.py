@@ -9,33 +9,39 @@ import numpy as np
 from loguru import logger
 from pydantic import BaseModel
 from pytube import YouTube
+from youtube_transcript_api import TranscriptsDisabled
 
-from auto_shorts.data_upload.video_data_upload import (
-    AwsS3DataUploader,
-    DataUploaderInterface,
+from auto_shorts.download.channel import (
+    ChannelInfoDownloader,
+    ChannelInfoDownloaderInterface,
 )
 from auto_shorts.download.most_watched_moments import (
     MostReplayedNotPresentException,
     MostWatchedMomentsDownloader,
+    MostWatchedMomentsDownloaderBase,
 )
-from auto_shorts.download.video_info import (
-    ChannelInfoDownloader,
-    ChannelInfoDownloaderInterface,
-    VideoData,
-    VideoDataWithStats,
+from auto_shorts.download.transcription import (
+    TranscriptionData,
+    YoutubeTranscription,
+    YoutubeTranscriptionInterface,
 )
+from auto_shorts.download.video_info import VideoData, VideoDataWithStats
 from auto_shorts.preprocess.parse_response import (
     VideoDataList,
     VideoDataParser,
     VideoDataParserInterface,
 )
-from auto_shorts.utils import timeit
+from auto_shorts.upload.video_data_upload import (
+    AwsS3DataUploader,
+    DataUploaderInterface,
+)
 
 base_data_path = Path(__file__).parents[2] / "data"
 
 
-class VideoDataWithMoments(VideoDataWithStats):
+class VideoDataFull(VideoDataWithStats):
     most_watched_moments: list[dict]
+    transcription: TranscriptionData | None
 
 
 class DownloadConfig(BaseModel):
@@ -75,39 +81,48 @@ class YoutubeVideoDownloader:
         Download the video in mp4 format and save it to a specified location.
     """
 
-    def __init__(self, data_uploader: DataUploaderInterface):
+    def __init__(
+        self,
+        data_uploader: DataUploaderInterface = AwsS3DataUploader(),
+        moment_downloader: MostWatchedMomentsDownloaderBase = MostWatchedMomentsDownloader(),
+        transcription_downloader: YoutubeTranscriptionInterface = YoutubeTranscription(),
+    ):
         self.data_uploader = data_uploader
+        self.moment_downloader = moment_downloader
+        self.transcription_downloader = transcription_downloader
 
-    @staticmethod
-    def download_moments(video_data: VideoData) -> VideoDataWithMoments:
-        """Download the most watched moments of the video.
-
-        Parameters
-        ----------
-        video_data : VideoData
-            A `VideoData` object containing the video's metadata.
-
-        Returns
-        -------
-        VideoDataWithMoments
-            A `VideoDataWithMoments` object containing the video's metadata and the most watched moments.
-        """
-        moment_downloader = MostWatchedMomentsDownloader(
-            video_id=video_data.id
-        )
-        most_watched_moments = (
-            moment_downloader.get_most_watched_moments().to_dict(
-                orient="records"
+    def download_moments(self, video_id: str) -> list[dict] | None:
+        try:
+            most_watched_moments = (
+                self.moment_downloader.get_most_watched_moments(
+                    video_id=video_id
+                ).to_dict(orient="records")
             )
-        )
-        return VideoDataWithMoments(
-            **video_data.dict(), most_watched_moments=most_watched_moments
-        )
+
+        except MostReplayedNotPresentException as e:
+            logger.error(e)
+            most_watched_moments = None
+
+        return most_watched_moments
+
+    def download_transcription(
+        self, video_id: str
+    ) -> TranscriptionData | None:
+        try:
+            transcription = self.transcription_downloader.get_transcription(
+                video_id=video_id
+            )
+
+        except TranscriptsDisabled:
+            logger.error("Subtitles are disabled for this video")
+            transcription = None
+
+        return transcription
 
     @staticmethod
     def _download_to_mp4(
         save_path: Path,
-        vide_data_full: VideoDataWithMoments,
+        vide_data_full: VideoDataFull,
         filename: str,
         resolution: str,
     ) -> None:
@@ -119,7 +134,7 @@ class YoutubeVideoDownloader:
         save_path : Path
             The path where the video will be saved.
 
-        video_data_full : VideoDataWithMoments
+        video_data_full : VideoDataFull
             A `VideoDataWithMoments` object containing the video's metadata and the most watched moments.
 
         filename : str
@@ -138,6 +153,20 @@ class YoutubeVideoDownloader:
             )
         except KeyError as e:
             logger.error(f"Data needed to download not found. Key error: {e}")
+
+    async def _download_to_mp4_async(
+        self,
+        save_path: Path,
+        vide_data_full: VideoDataFull,
+        filename: str,
+        resolution: str,
+    ) -> None:
+        self._download_to_mp4(
+            vide_data_full=vide_data_full,
+            filename=filename,
+            resolution=resolution,
+            save_path=save_path,
+        )
 
     def download(self, download_params: DownloadParams) -> None:
         """Download video data and save it to the specified directory. If
@@ -168,15 +197,22 @@ class YoutubeVideoDownloader:
                 "Wrong params config! One of 'to_s3' and 'save_local' must be True!"
             )
 
-        try:
-            video_data_full = self.download_moments(
-                video_data=download_params.video_data
-            )
-
-        except MostReplayedNotPresentException as e:
-            logger.error(e)
+        most_watched_moments = self.download_moments(
+            video_id=download_params.video_data.id
+        )
+        if not most_watched_moments:
+            # we don't need movies without most watched moments for now
             return
 
+        transcription = self.download_transcription(
+            download_params.video_data.id
+        )
+
+        video_data_full = VideoDataFull(
+            **download_params.video_data.dict(),
+            most_watched_moments=most_watched_moments,
+            transcription=transcription,
+        )
         os.makedirs(
             download_params.save_path / video_data_full.id, exist_ok=True
         )
@@ -215,7 +251,7 @@ class YoutubeVideoDownloader:
         )
 
 
-class MultipleVideoDownloader:
+class VideoFromChannelDownloader:
     """A class for downloading multiple videos from a channel. It is designed
     to work with different types of downloaders and video data parsers.
 
@@ -291,7 +327,7 @@ class MultipleVideoDownloader:
             video_data_list=videos_data, date_from=date_from, date_to=date_to
         )
 
-    def download_videos_from_channel(
+    def download(
         self,
         video_id: str,
         download_config: DownloadConfig = DownloadConfig(),
@@ -330,7 +366,7 @@ class MultipleVideoDownloader:
             )
             self.downloader.download(download_params=download_params)
 
-    async def download_videos_from_channel_async(
+    async def download_async(
         self,
         video_id: str,
         download_config: DownloadConfig = DownloadConfig(),
@@ -340,7 +376,7 @@ class MultipleVideoDownloader:
         date_from: str = None,
         date_to: str = None,
     ):
-        """Download videos asynchronousl from a YouTube channel.
+        """Download videos asynchronously from a YouTube channel.
 
         Parameters:
             video_id: A string representing the channel ID.
@@ -379,7 +415,7 @@ if __name__ == "__main__":
     downloader_test = YoutubeVideoDownloader(data_uploader=uploader_test)
     channel_info_downloader_test = ChannelInfoDownloader()
     video_parser_test = VideoDataParser()
-    m_downloader = MultipleVideoDownloader(
+    m_downloader = VideoFromChannelDownloader(
         downloader=downloader_test,
         channel_info_downloader=channel_info_downloader_test,
         video_data_parser=video_parser_test,
@@ -387,24 +423,21 @@ if __name__ == "__main__":
 
     download_params_test = dict(
         video_id="1fUpkq7urDU",
-        video_number_limit=10,
+        video_number_limit=20,
         video_info_limit=50,
         download_config=DownloadConfig(to_s3=True, save_local=True),
-        date_from="2022-10-01",
-        date_to="2022-12-01",
+        # date_from="2022-10-01",
+        # date_to="2022-12-01",
     )
 
     # @timeit
-    # def download_sync(params: dict):
-    #     m_downloader.download_videos_from_channel(**params)
+    def download_sync(params: dict):
+        m_downloader.download(**params)
 
-    @timeit
     def download_async(params: dict):
         asyncio.run(
-            m_downloader.download_videos_from_channel_async(
-                **params, async_videos_block_size=10
-            )
+            m_downloader.download_async(**params, async_videos_block_size=10)
         )
 
-    # download_sync(download_params)
-    download_async(download_params_test)
+    download_sync(download_params_test)
+    # download_async(download_params_test)

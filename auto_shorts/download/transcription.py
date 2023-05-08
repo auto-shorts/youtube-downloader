@@ -43,6 +43,11 @@ class YoutubeTranscriptionInterface(Protocol):
     def get_transcription(self, video_id: str) -> TranscriptionData:
         ...
 
+    async def get_transcription_async(
+        self, video_id: str
+    ) -> TranscriptionData:
+        ...
+
 
 class YoutubeTranscription:
     def __init__(self):
@@ -74,7 +79,7 @@ class YoutubeTranscription:
         Thing to consider later - add possibility to translate.
         For now, it would take much time and is not needed
         """
-        transcript_list = trans._list_transcripts(video_id)
+        transcript_list = self._list_transcripts(video_id)
         self._validate_transcripts(transcript_list)
 
         transcription_results = {}
@@ -113,8 +118,13 @@ class YoutubeTranscription:
 
         return TranscriptionData(transcriptions=transcription_results)
 
+    async def get_transcription_async(
+        self, video_id: str
+    ) -> TranscriptionData:
+        return self.get_transcription(video_id=video_id)
+
 
 if __name__ == "__main__":
     video_id_test = "t7-nb1wlnyA"
     trans = YoutubeTranscription()
-    pprint(trans.get_transcription(video_id_test).dict())
+    pprint(trans.get_transcription(video_id_test))
