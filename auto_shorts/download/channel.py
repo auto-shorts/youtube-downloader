@@ -152,7 +152,7 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         return ChannelInfo(
             **{
                 k: (
-                    v.replace("'", "".replace("%", ""))
+                    v.replace("'", "".replace("%", "").replace("%", ""))
                     if isinstance(v, str)
                     else v
                 )
@@ -162,7 +162,7 @@ class ChannelInfoDownloader(InfoDownloaderBase):
 
     def push_info_to_db(self, channel_id: str) -> None:
         channel_info = self.get_info(channel_id)
-        response = upload_channel_info(channel_info)
+        _ = upload_channel_info(channel_info)
 
 
 if __name__ == "__main__":

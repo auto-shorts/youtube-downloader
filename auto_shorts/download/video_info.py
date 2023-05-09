@@ -43,10 +43,11 @@ def preprocess_video_response(video_data) -> VideoData:
         tags=safe_get(video_data, "snippet", "tags"),
         title=safe_get(video_data, "snippet", "title"),
     )
+    # TODO Find bug with % when downloading from mrbeast channel
     return VideoData(
         **{
             k: (
-                v.replace("'", "").replace("%", "")
+                v.replace("'", "").replace("%", "").replace("%", "")
                 if isinstance(v, str)
                 else v
             )

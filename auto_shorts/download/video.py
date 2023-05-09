@@ -51,9 +51,6 @@ class DownloaderInterface(Protocol):
     def download(self, download_params: DownloadParams):
         """Enforce download method."""
 
-    async def download_async(self, download_params: DownloadParams):
-        """Enforce async download method."""
-
 
 class YoutubeVideoDownloader:
     """A class used to download YouTube videos and save them to a specified
@@ -151,20 +148,6 @@ class YoutubeVideoDownloader:
         except KeyError as e:
             logger.error(f"Data needed to download not found. Key error: {e}")
             return False
-
-    async def _download_to_mp4_async(
-        self,
-        save_path: Path,
-        video_id: str,
-        filename: str,
-        resolution: str,
-    ) -> bool:
-        return self._download_to_mp4(
-            video_id=video_id,
-            filename=filename,
-            resolution=resolution,
-            save_path=save_path,
-        )
 
     def download(self, download_params: DownloadParams) -> bool:
         """Download video data and save it to the specified directory. If
@@ -265,11 +248,6 @@ class YoutubeVideoDownloader:
 
         logger.info(f"Video downloaded - {download_params.video_data.id}")
         return True
-
-    async def download_async(self, download_params: DownloadParams) -> bool:
-        return self.download(
-            download_params=download_params,
-        )
 
 
 class VideoFromChannelDownloader:
@@ -439,7 +417,8 @@ class VideoFromChannelDownloader:
         for video_chunk in video_chunks:
             _ = await asyncio.gather(
                 *[
-                    self.downloader.download_async(
+                    asyncio.to_thread(
+                        self.downloader.download,
                         DownloadParams(
                             video_data=video_data, **download_config.dict()
                         ),
@@ -461,7 +440,7 @@ if __name__ == "__main__":
     )
 
     download_params_test = dict(
-        video_id="1WEAJ-DFkHE",
+        video_id="y7D3iIHtelw",
         video_number_limit=30,
         video_info_limit=100,
         download_config=DownloadConfig(to_s3=True, save_local=True),
@@ -478,5 +457,5 @@ if __name__ == "__main__":
             m_downloader.download_async(**params, async_videos_block_size=10)
         )
 
-    download_sync(download_params_test)
-    # download_async(download_params_test)
+    # download_sync(download_params_test)
+    download_async(download_params_test)
