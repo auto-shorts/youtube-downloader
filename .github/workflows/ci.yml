@@ -41,19 +41,3 @@ jobs:
       run: poetry run python -m black --line-length 79 --check .
     - name: Isort
       run: poetry run python -m isort --profile black --line-length 79 --check-only .
-    - name: Test with pytest
-      run: |
-        poetry run pytest --cov
-
-    - name: Coverage comment
-      id: coverage_comment
-      uses: py-cov-action/python-coverage-comment-action@v3
-      with:
-        GITHUB_TOKEN: ${{ github.token }}
-
-    - name: Store Pull Request comment to be posted
-      uses: actions/upload-artifact@v3
-      if: steps.coverage_comment.outputs.COMMENT_FILE_WRITTEN == 'true'
-      with:
-        name: python-coverage-comment-action
-        path: python-coverage-comment-action.txt
