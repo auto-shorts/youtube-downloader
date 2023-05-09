@@ -1,7 +1,5 @@
-from pprint import pprint
 from typing import Protocol
 
-from auto_shorts.db.upload import upload_channel_info
 from auto_shorts.download.models.channel import ChannelInfo
 from auto_shorts.download.models.video_info import PlaylistVideoData, VideoData
 from auto_shorts.download.video_info import (
@@ -10,6 +8,7 @@ from auto_shorts.download.video_info import (
     VideoInfoDownloader,
     preprocess_playlist,
 )
+from auto_shorts.upload.db import upload_channel_info
 from auto_shorts.utils import safe_get
 
 
@@ -142,7 +141,7 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         channel_data = safe_get(response, "items")[0]
         snippet = safe_get(channel_data, "snippet")
         statistics = safe_get(channel_data, "statistics")
-        return ChannelInfo(
+        info_raw = dict(
             channel_id=channel_id,
             title=snippet["title"],
             description=snippet["description"],
@@ -150,10 +149,15 @@ class ChannelInfoDownloader(InfoDownloaderBase):
             views=statistics["viewCount"],
             subscribers=statistics["subscriberCount"],
         )
+        return ChannelInfo(
+            **{
+                k: (v.replace("'", "") if isinstance(v, str) else v) for k, v in info_raw.items()
+            }
+        )
 
     def push_info_to_db(self, channel_id: str) -> None:
         channel_info = self.get_info(channel_id)
-        upload_channel_info(channel_info)
+        response = upload_channel_info(channel_info)
 
 
 if __name__ == "__main__":

@@ -5,12 +5,12 @@ from pydantic import BaseModel
 from auto_shorts.download.models.transcription import TranscriptionData
 from auto_shorts.download.models.video_info import (
     VideoData,
-    VideoDataWithStats,
 )
-from auto_shorts.download.video import base_data_path
+
+base_data_path = Path(__file__).parents[2] / "data"
 
 
-class VideoDataFull(VideoDataWithStats):
+class TranscriptionAndMoments(BaseModel):
     most_watched_moments: list[dict]
     transcription: TranscriptionData | None
 

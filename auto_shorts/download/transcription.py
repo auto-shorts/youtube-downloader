@@ -13,7 +13,7 @@ from auto_shorts.exceptions import DifferentBaseLanguagesException
 
 
 class YoutubeTranscriptionInterface(Protocol):
-    def get_transcription(self, video_id: str) -> TranscriptionData:
+    def get_transcription(self, video_id: str, base_language_code: str = 'en') -> TranscriptionData:
         ...
 
     async def get_transcription_async(
@@ -29,31 +29,12 @@ class YoutubeTranscription:
     def _list_transcripts(self, video_id: str) -> TranscriptList:
         return self.transcript_api.list_transcripts(video_id)
 
-    @staticmethod
-    def _validate_transcripts(transcript_list: TranscriptList):
-        main_language_codes = []
-        for transcript in transcript_list:
-            main_language_codes.append(transcript.language_code)
-
-            if not all(
-                x == main_language_codes[0] for x in main_language_codes
-            ):
-                """
-                This will allow to check if there is a situation, when
-                there are 2 main languages. I haven't managed to reproduce it,
-                but maybe it is possible.
-                """
-                raise DifferentBaseLanguagesException(
-                    language_codes=main_language_codes
-                )
-
     def get_transcription(self, video_id: str) -> TranscriptionData:
         """
         Thing to consider later - add possibility to translate.
         For now, it would take much time and is not needed
         """
         transcript_list = self._list_transcripts(video_id)
-        self._validate_transcripts(transcript_list)
 
         transcription_results = {}
         for transcript in transcript_list:

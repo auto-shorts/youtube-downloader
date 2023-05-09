@@ -5,11 +5,11 @@ import requests
 
 
 class MostReplayedNotPresentException(Exception):
-    """Exception thrown when video doesn't have most replayed moments avaible"""
+    """Exception thrown when video doesn't have most replayed moments available"""
 
     def __init__(
         self,
-        message="Video doesn't have most replayed moments avaible",
+        message="Video doesn't have most replayed moments available",
         video_id: str = None,
     ):
         self.message = message
