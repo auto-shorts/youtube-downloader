@@ -38,8 +38,8 @@ from auto_shorts.preprocess.parse_response import (
 from auto_shorts.upload.db import upload_video_info_to_db
 from auto_shorts.upload.db.upload import (
     is_channel_present,
+    is_video_present,
     upload_channel_info,
-    is_video_present
 )
 from auto_shorts.upload.s3.video_data_upload import (
     AwsS3DataUploader,
@@ -137,7 +137,11 @@ class YoutubeVideoDownloader:
         """
         try:
             (
-                YouTube(f"https://www.youtube.com/watch?v={video_id}", use_oauth=True, allow_oauth_cache=True)
+                YouTube(
+                    f"https://www.youtube.com/watch?v={video_id}",
+                    use_oauth=True,
+                    allow_oauth_cache=True,
+                )
                 .streams.filter(file_extension="mp4", res=resolution)
                 .first()
                 .download(str(save_path), filename=filename)
@@ -192,7 +196,9 @@ class YoutubeVideoDownloader:
             )
 
         if is_video_present(video_id=download_params.video_data.id):
-            logger.info(f"Video already on s3 - skipping: {download_params.video_data.id}")
+            logger.info(
+                f"Video already on s3 - skipping: {download_params.video_data.id}"
+            )
             return True
 
         most_watched_moments = self.download_moments(

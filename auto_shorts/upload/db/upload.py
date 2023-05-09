@@ -105,8 +105,12 @@ def is_video_present(video_id: str) -> bool:
     return True
 
 
-def upload_video_info_to_db(video_data: VideoData, s3_path: str) -> CursorResult:
-    licensed = video_data.licensed if video_data.licensed is not None else 'null'
+def upload_video_info_to_db(
+    video_data: VideoData, s3_path: str
+) -> CursorResult:
+    licensed = (
+        video_data.licensed if video_data.licensed is not None else "null"
+    )
     query = f"""
         INSERT INTO autoshorts.videos (
             id, 

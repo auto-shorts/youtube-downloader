@@ -45,7 +45,12 @@ def preprocess_video_response(video_data) -> VideoData:
     )
     return VideoData(
         **{
-            k: (v.replace("'", "") if isinstance(v, str) else v) for k, v in data_raw.items()
+            k: (
+                v.replace("'", "").replace("%", "")
+                if isinstance(v, str)
+                else v
+            )
+            for k, v in data_raw.items()
         }
     )
 

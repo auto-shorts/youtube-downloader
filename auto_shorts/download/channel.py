@@ -151,7 +151,12 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         )
         return ChannelInfo(
             **{
-                k: (v.replace("'", "") if isinstance(v, str) else v) for k, v in info_raw.items()
+                k: (
+                    v.replace("'", "".replace("%", ""))
+                    if isinstance(v, str)
+                    else v
+                )
+                for k, v in info_raw.items()
             }
         )
 

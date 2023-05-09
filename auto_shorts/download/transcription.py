@@ -13,7 +13,9 @@ from auto_shorts.exceptions import DifferentBaseLanguagesException
 
 
 class YoutubeTranscriptionInterface(Protocol):
-    def get_transcription(self, video_id: str, base_language_code: str = 'en') -> TranscriptionData:
+    def get_transcription(
+        self, video_id: str, base_language_code: str = "en"
+    ) -> TranscriptionData:
         ...
 
     async def get_transcription_async(
