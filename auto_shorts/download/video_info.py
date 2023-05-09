@@ -1,15 +1,17 @@
-import json
-import os
 import pprint
-from pathlib import Path
 
 import googleapiclient.discovery
 import googleapiclient.errors
 from loguru import logger
-from pydantic import BaseModel
 from youtube_transcript_api import YouTubeTranscriptApi
 
 from auto_shorts.config import GCP_API_KEY
+from auto_shorts.download.models.video_info import (
+    PlaylistVideoData,
+    VideoData,
+    VideoDataWithStats,
+    VideoStatistics,
+)
 from auto_shorts.utils import safe_get
 
 BASE_RESULT_KEYS = (
@@ -24,57 +26,9 @@ BASE_PLAYLIST_RESULT_KEYS = (
 )
 
 
-class VideoStatistics(BaseModel):
-    comments: int | None
-    likes: int | None
-    views: int | None
-
-
-class VideoData(BaseModel):
-    id: str
-    channel_id: str | None
-    channel_title: str | None
-    audio_language: str | None
-    licensed: bool | None
-    description: str | None
-    published_at: str | None
-    category_id: str | None
-    tags: list[str] | None
-    title: str | None
-
-
-class VideoDataWithStats(VideoData):
-    statistics: VideoStatistics | None
-
-
-class VideoCategory(BaseModel):
-    """Class representing a video category on YouTube.
-
-    Attributes
-    ----------
-    region_code : str
-        The two-letter ISO 3166-1 alpha-2 country code for the region to which the video category belongs.
-    category_id : str
-        The ID of the video category.
-    assignable : bool
-        Whether the video category can be used as a target for new videos.
-    category_title : str
-        The title of the video category.
-    """
-
-    region_code: str
-    category_id: int
-    category_title: str
-    assignable: bool
-
-
-class PlaylistVideoData(BaseModel):
-    video_data: list[VideoData]
-    next_page_token: str | None
-
-
 def preprocess_video_response(video_data) -> VideoData:
-    return VideoData(
+    category_id = safe_get(video_data, "snippet", "categoryId")
+    data_raw = dict(
         id=safe_get(
             video_data,
             "id",
@@ -85,9 +39,20 @@ def preprocess_video_response(video_data) -> VideoData:
         audio_language=safe_get(video_data, "snippet", "defaultAudioLanguage"),
         description=safe_get(video_data, "snippet", "description"),
         published_at=safe_get(video_data, "snippet", "publishedAt"),
-        category_id=safe_get(video_data, "snippet", "categoryId"),
+        category_id=category_id if category_id else 999,  # meaning no category
         tags=safe_get(video_data, "snippet", "tags"),
         title=safe_get(video_data, "snippet", "title"),
+    )
+    # TODO Find bug with % when downloading from mrbeast channel
+    return VideoData(
+        **{
+            k: (
+                v.replace("'", "").replace("%", "").replace("%", "")
+                if isinstance(v, str)
+                else v
+            )
+            for k, v in data_raw.items()
+        }
     )
 
 
@@ -139,67 +104,6 @@ class InfoDownloaderBase:
         self.youtube = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=api_key
         )
-
-
-class CategoryInfoDownloader(InfoDownloaderBase):
-    """Class for downloading information about video categories from YouTube
-    API.
-
-    Methods:
-        video_categories_by_region(region_code save_path)
-            Fetches video categories for the given region code from the YouTube API.
-    """
-
-    def video_categories_by_region(
-        self, region_code: str, save_path: Path | None = None
-    ) -> list[VideoCategory]:
-        """Fetches video categories for the given region code from the YouTube
-        API.
-
-        Parameters
-        ----------
-        region_code : str
-            The two-letter ISO 3166-1 alpha-2 country code for the region whose video categories are to be fetched.
-        save_path : Optional[Path], optional
-            The path where the fetched video categories data should be saved as a JSON file. Default value is None,
-            which means the data won't be saved.
-
-        Returns
-        -------
-        categories : List[VideoCategory]
-            A list of VideoCategory objects, where each object contains information about a single video category.
-
-        Raises
-        ------
-        HttpError
-            If there's an error in fetching the video categories data from the YouTube API.
-        """
-        request = self.youtube.videoCategories().list(
-            part="snippet", regionCode=region_code
-        )
-        response = request.execute()
-        categories = []
-
-        for item in response["items"]:
-            snippet = item["snippet"]
-            category = VideoCategory(
-                region_code=region_code,
-                category_id=item["id"],
-                assignable=snippet["assignable"],
-                category_title=snippet["title"],
-            )
-            categories.append(category)
-
-        if save_path:
-            os.makedirs(save_path, exist_ok=True)
-            with open(save_path / f"{region_code}.json", "w") as file:
-                json.dump(
-                    [category.dict() for category in categories],
-                    file,
-                    indent=4,
-                )
-
-        return categories
 
 
 class VideoInfoDownloader(InfoDownloaderBase):

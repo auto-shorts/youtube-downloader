@@ -3,7 +3,10 @@ from typing import Protocol
 
 import pytz
 
-from auto_shorts.download.video_info import VideoData, VideoDataWithStats
+from auto_shorts.download.models.video_info import (
+    VideoData,
+    VideoDataWithStats,
+)
 from auto_shorts.utils import datetime_from_iso_str
 
 VideoDataList = list[VideoData | VideoDataWithStats]

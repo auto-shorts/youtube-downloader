@@ -1,26 +1,15 @@
-from pprint import pprint
 from typing import Protocol
 
-from pydantic import BaseModel
-
+from auto_shorts.download.models.channel import ChannelInfo
+from auto_shorts.download.models.video_info import PlaylistVideoData, VideoData
 from auto_shorts.download.video_info import (
     BASE_PLAYLIST_RESULT_KEYS,
     InfoDownloaderBase,
-    PlaylistVideoData,
-    VideoData,
     VideoInfoDownloader,
     preprocess_playlist,
 )
+from auto_shorts.upload.db import upload_channel_info
 from auto_shorts.utils import safe_get
-
-
-class ChannelInfo(BaseModel):
-    channel_id: str
-    title: str
-    description: str
-    custom_url: str | None
-    views: int
-    subscribers: int
 
 
 class ChannelInfoDownloaderInterface(Protocol):
@@ -30,6 +19,9 @@ class ChannelInfoDownloaderInterface(Protocol):
         video_info_limit: int,
         max_results_per_page: int = 20,
     ) -> list[VideoData]:
+        ...
+
+    def get_info(self, channel_id: str) -> ChannelInfo:
         ...
 
 
@@ -149,7 +141,7 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         channel_data = safe_get(response, "items")[0]
         snippet = safe_get(channel_data, "snippet")
         statistics = safe_get(channel_data, "statistics")
-        return ChannelInfo(
+        info_raw = dict(
             channel_id=channel_id,
             title=snippet["title"],
             description=snippet["description"],
@@ -157,8 +149,22 @@ class ChannelInfoDownloader(InfoDownloaderBase):
             views=statistics["viewCount"],
             subscribers=statistics["subscriberCount"],
         )
+        return ChannelInfo(
+            **{
+                k: (
+                    v.replace("'", "".replace("%", "").replace("%", ""))
+                    if isinstance(v, str)
+                    else v
+                )
+                for k, v in info_raw.items()
+            }
+        )
+
+    def push_info_to_db(self, channel_id: str) -> None:
+        channel_info = self.get_info(channel_id)
+        _ = upload_channel_info(channel_info)
 
 
 if __name__ == "__main__":
     downloader_test = ChannelInfoDownloader()
-    pprint(downloader_test.get_info("UCjXfkj5iapKHJrhYfAF9ZGg"))
+    downloader_test.push_info_to_db("UCjXfkj5iapKHJrhYfAF9ZGg")
