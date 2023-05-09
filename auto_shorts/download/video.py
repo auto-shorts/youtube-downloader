@@ -35,15 +35,12 @@ from auto_shorts.preprocess.parse_response import (
     VideoDataParser,
     VideoDataParserInterface,
 )
+from auto_shorts.upload.bucket import AwsS3DataUploader, DataUploaderInterface
 from auto_shorts.upload.db import (
     is_channel_present,
     is_video_present,
     upload_channel_info,
-    upload_video_info_to_db
-)
-from auto_shorts.upload.bucket import (
-    AwsS3DataUploader,
-    DataUploaderInterface,
+    upload_video_info_to_db,
 )
 
 
