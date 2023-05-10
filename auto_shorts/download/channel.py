@@ -1,11 +1,19 @@
+import pprint
 from typing import Protocol
 
+import numpy as np
+
 from auto_shorts.download.models.channel import ChannelInfo
-from auto_shorts.download.models.video_info import PlaylistVideoData, VideoData
+from auto_shorts.download.models.video_info import (
+    PlaylistVideoData,
+    VideoData,
+    VideoDataWithStats,
+)
 from auto_shorts.download.video_info import (
     BASE_PLAYLIST_RESULT_KEYS,
     InfoDownloaderBase,
     VideoInfoDownloader,
+    VideoInfoDownloaderInterface,
     preprocess_playlist,
 )
 from auto_shorts.upload.db import upload_channel_info
@@ -22,6 +30,15 @@ class ChannelInfoDownloaderInterface(Protocol):
         ...
 
     def get_info(self, channel_id: str) -> ChannelInfo:
+        ...
+
+    def get_full_video_data_from_channel(
+        self,
+        video_id: str,
+        video_info_limit: int,
+        max_results_per_page: int = 20,
+        one_request_max_size: int = 10,
+    ) -> list[VideoDataWithStats]:
         ...
 
 
@@ -50,12 +67,13 @@ class ChannelInfoDownloader(InfoDownloaderBase):
     def __init__(
         self,
         result_keys: tuple = BASE_PLAYLIST_RESULT_KEYS,
+        video_info_downloader: VideoInfoDownloaderInterface = VideoInfoDownloader(),
     ) -> None:
         super().__init__()
         self.result_keys = result_keys
+        self.video_info_downloader = video_info_downloader
 
-    @staticmethod
-    def _get_user_playlist_id_from_video(video_id: str) -> str:
+    def _get_user_playlist_id_from_video(self, video_id: str) -> str:
         """Returns the ID of the playlist containing the videos for the
         specified video ID.
 
@@ -65,10 +83,9 @@ class ChannelInfoDownloader(InfoDownloaderBase):
         Returns:
             str: The ID of the playlist containing the videos for the specified video ID.
         """
-        video_downloader = VideoInfoDownloader()
-        channel_id = video_downloader.download_video_data(video_id=video_id)[
-            0
-        ].channel_id
+        channel_id = self.video_info_downloader.download_video_data(
+            video_id=video_id
+        )[0].channel_id
         return f"UU{channel_id[2:]}"
 
     def _next_page_download(
@@ -133,6 +150,34 @@ class ChannelInfoDownloader(InfoDownloaderBase):
 
         return video_data
 
+    def get_full_video_data_from_channel(
+        self,
+        video_id: str,
+        video_info_limit: int,
+        max_results_per_page: int = 20,
+        one_request_max_size: int = 10,
+    ) -> list[VideoDataWithStats]:
+        videos_data = self.get_videos_from_channel(
+            video_id=video_id,
+            video_info_limit=video_info_limit,
+            max_results_per_page=max_results_per_page,
+        )
+        info_downloader = VideoInfoDownloader()
+        video_data_chunks: list[np.ndarray[VideoData]] = np.array_split(
+            videos_data, one_request_max_size
+        )
+        videos_data_with_stats = []
+        for video_data_chunk in video_data_chunks:
+            videos_data_with_stats.extend(
+                info_downloader.download_video_data(
+                    video_id=",".join(
+                        [video_data.id for video_data in video_data_chunk]
+                    )
+                )
+            )
+
+        return videos_data_with_stats
+
     def get_info(self, channel_id: str) -> ChannelInfo:
         request = self.youtube.channels().list(
             part="snippet,contentDetails,statistics", id=channel_id
@@ -167,4 +212,4 @@ class ChannelInfoDownloader(InfoDownloaderBase):
 
 if __name__ == "__main__":
     downloader_test = ChannelInfoDownloader()
-    downloader_test.push_info_to_db("UCjXfkj5iapKHJrhYfAF9ZGg")
+    print(downloader_test._get_user_playlist_id_from_video("JPXBpy7GkQQ"))

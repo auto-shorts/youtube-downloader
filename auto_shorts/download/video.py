@@ -20,7 +20,10 @@ from auto_shorts.download.models.video import (
     DownloadParams,
     TranscriptionAndMoments,
 )
-from auto_shorts.download.models.video_info import VideoData
+from auto_shorts.download.models.video_info import (
+    VideoData,
+    VideoDataWithStats,
+)
 from auto_shorts.download.most_watched_moments import (
     MostReplayedNotPresentException,
     MostWatchedMomentsDownloader,
@@ -45,7 +48,7 @@ from auto_shorts.upload.db import (
 
 
 class DownloaderInterface(Protocol):
-    def download(self, download_params: DownloadParams):
+    def download(self, download_params: DownloadParams) -> bool:
         """Enforce download method."""
 
 
@@ -287,9 +290,9 @@ class VideoFromChannelDownloader:
 
     def get_video_data(
         self, video_id: str, video_info_limit: int
-    ) -> list[VideoData]:
+    ) -> list[VideoDataWithStats]:
         logger.info("Downloading videos idx from channel")
-        return self.channel_info_downloader.get_videos_from_channel(
+        return self.channel_info_downloader.get_full_video_data_from_channel(
             video_id=video_id, video_info_limit=video_info_limit
         )
 
@@ -320,7 +323,7 @@ class VideoFromChannelDownloader:
         video_info_limit: int,
         date_from: str,
         date_to: str,
-    ) -> list[VideoData] | None:
+    ) -> list[VideoDataWithStats] | None:
         videos_data = self.get_video_data(
             video_id=video_id, video_info_limit=video_info_limit
         )

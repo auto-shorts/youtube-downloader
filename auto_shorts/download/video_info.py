@@ -1,4 +1,5 @@
 import pprint
+from typing import Protocol
 
 import googleapiclient.discovery
 import googleapiclient.errors
@@ -104,6 +105,11 @@ class InfoDownloaderBase:
         self.youtube = googleapiclient.discovery.build(
             api_service_name, api_version, developerKey=api_key
         )
+
+
+class VideoInfoDownloaderInterface(Protocol):
+    def download_video_data(self, video_id: str) -> list[VideoDataWithStats]:
+        ...
 
 
 class VideoInfoDownloader(InfoDownloaderBase):
