@@ -3,7 +3,10 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from auto_shorts.download.models.transcription import TranscriptionData
-from auto_shorts.download.models.video_info import VideoData
+from auto_shorts.download.models.video_info import (
+    VideoData,
+    VideoDataWithStats,
+)
 
 base_data_path = Path(__file__).parents[2] / "data"
 
@@ -21,5 +24,5 @@ class DownloadConfig(BaseModel):
 
 
 class DownloadParams(DownloadConfig):
-    video_data: VideoData
+    video_data: VideoDataWithStats
     resolution: str = "480p"

@@ -4,7 +4,10 @@ from sqlalchemy.engine import CursorResult
 
 from auto_shorts.download.models.category import VideoCategory
 from auto_shorts.download.models.channel import ChannelInfo
-from auto_shorts.download.models.video_info import VideoData
+from auto_shorts.download.models.video_info import (
+    VideoData,
+    VideoDataWithStats,
+)
 from auto_shorts.upload.db.utils import postgres_engine
 
 
@@ -106,7 +109,7 @@ def is_video_present(video_id: str) -> bool:
 
 
 def upload_video_info_to_db(
-    video_data: VideoData, s3_path: str
+    video_data: VideoDataWithStats, s3_path: str
 ) -> CursorResult:
     licensed = (
         video_data.licensed if video_data.licensed is not None else "null"
@@ -123,6 +126,9 @@ def upload_video_info_to_db(
             category_id,
             channel_id,
             s3_path,
+            comments,
+            likes,
+            views,
             created_at
         )
         VALUES
@@ -132,11 +138,14 @@ def upload_video_info_to_db(
                 {licensed},
                 '{video_data.description}',
                 '{video_data.published_at}',
-                '{video_data.tags}',
+                '{",".join(video_data.tags)}',
                 '{video_data.title}',
                 '{video_data.category_id}',
                 '{video_data.channel_id}',
                 '{s3_path}',
+                {video_data.statistics.comments},
+                {video_data.statistics.likes},
+                {video_data.statistics.views},
                 NOW()
             ) 
         ON CONFLICT (id) 
