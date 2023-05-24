@@ -3,12 +3,9 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from auto_shorts.download.models.transcription import TranscriptionData
-from auto_shorts.download.models.video_info import (
-    VideoData,
-    VideoDataWithStats,
-)
+from auto_shorts.download.models.video_info import VideoDataWithStats
 
-base_data_path = Path(__file__).parents[2] / "data"
+base_data_path = Path(__file__).parents[3] / "data"
 
 
 class TranscriptionAndMoments(BaseModel):
