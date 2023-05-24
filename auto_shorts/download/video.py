@@ -7,7 +7,6 @@ from typing import Protocol
 
 import numpy as np
 from loguru import logger
-from pytube import YouTube
 from youtube_transcript_api import TranscriptsDisabled
 
 from auto_shorts.download.channel import (
@@ -29,6 +28,11 @@ from auto_shorts.download.most_watched_moments import (
     MostWatchedMomentsDownloader,
     MostWatchedMomentsDownloaderBase,
 )
+from auto_shorts.download.mp4 import (
+    Mp4DownloaderInterface,
+    MutualVideoAudioDownloader,
+    SeparatelyVideoAudioDownloader,
+)
 from auto_shorts.download.transcription import (
     YoutubeTranscription,
     YoutubeTranscriptionInterface,
@@ -47,12 +51,12 @@ from auto_shorts.upload.db import (
 )
 
 
-class DownloaderInterface(Protocol):
+class WholeVideoDataDownloaderInterface(Protocol):
     def download(self, download_params: DownloadParams) -> bool:
         """Enforce download method."""
 
 
-class YoutubeVideoDownloader:
+class WholeVideoDataDownloader:
     """A class used to download YouTube videos and save them to a specified
     location.
 
@@ -74,10 +78,12 @@ class YoutubeVideoDownloader:
         data_uploader: DataUploaderInterface = AwsS3DataUploader(),
         moment_downloader: MostWatchedMomentsDownloaderBase = MostWatchedMomentsDownloader(),
         transcription_downloader: YoutubeTranscriptionInterface = YoutubeTranscription(),
+        mp4_downloader: Mp4DownloaderInterface = SeparatelyVideoAudioDownloader(),
     ):
         self.data_uploader = data_uploader
         self.moment_downloader = moment_downloader
         self.transcription_downloader = transcription_downloader
+        self.mp4_downloader = mp4_downloader
 
     def download_moments(self, video_id: str) -> list[dict] | None:
         try:
@@ -107,47 +113,17 @@ class YoutubeVideoDownloader:
 
         return transcription
 
-    @staticmethod
-    def _download_to_mp4(
+    def download_mp4(
+        self,
         save_path: Path,
         video_id: str,
-        filename: str,
         resolution: str,
     ) -> bool:
-        """Download the video in mp4 format and save it to a specified
-        location.
-
-        Parameters
-        ----------
-        save_path : Path
-            The path where the video will be saved.
-
-        video_data_full : VideoDataFull
-            A `VideoDataWithMoments` object containing the video's metadata and the most watched moments.
-
-        filename : str
-            The name of the file in which the video will be saved.
-
-        Returns
-        -------
-        None
-        """
-        try:
-            (
-                YouTube(
-                    f"https://www.youtube.com/watch?v={video_id}",
-                    use_oauth=True,
-                    allow_oauth_cache=True,
-                )
-                .streams.filter(file_extension="mp4", res=resolution)
-                .first()
-                .download(str(save_path), filename=filename)
-            )
-            return True
-
-        except KeyError as e:
-            logger.error(f"Data needed to download not found. Key error: {e}")
-            return False
+        return self.mp4_downloader.download_to_mp4(
+            save_path=save_path,
+            video_id=video_id,
+            resolution=resolution,
+        )
 
     def download(self, download_params: DownloadParams) -> bool:
         """Download video data and save it to the specified directory. If
@@ -215,10 +191,9 @@ class YoutubeVideoDownloader:
                 indent=4,
             )
 
-        downloaded = self._download_to_mp4(
+        downloaded = self.download_mp4(
             save_path=data_save_path,
             video_id=download_params.video_data.id,
-            filename="video.mp4",
             resolution=download_params.resolution,
         )
         if not downloaded:
@@ -255,7 +230,7 @@ class VideoFromChannelDownloader:
     to work with different types of downloaders and video data parsers.
 
     Parameters:
-        downloader (DownloaderInterface): The object responsible for downloading the video content.
+        downloader (WholeVideoDataDownloaderInterface): The object responsible for downloading the video content.
         channel_info_downloader (ChannelInfoDownloaderInterface): The object responsible for collecting video data.
         video_data_parser (VideoDataParserInterface): The object used to select videos based on the date range.
 
@@ -280,7 +255,7 @@ class VideoFromChannelDownloader:
 
     def __init__(
         self,
-        downloader: DownloaderInterface,
+        downloader: WholeVideoDataDownloaderInterface,
         channel_info_downloader: ChannelInfoDownloaderInterface,
         video_data_parser: VideoDataParserInterface,
     ) -> None:
@@ -430,7 +405,10 @@ class VideoFromChannelDownloader:
 
 if __name__ == "__main__":
     uploader_test = AwsS3DataUploader()
-    downloader_test = YoutubeVideoDownloader(data_uploader=uploader_test)
+    downloader_test = WholeVideoDataDownloader(
+        data_uploader=uploader_test,
+        mp4_downloader=MutualVideoAudioDownloader(),
+    )
     channel_info_downloader_test = ChannelInfoDownloader()
     video_parser_test = VideoDataParser()
     m_downloader = VideoFromChannelDownloader(
@@ -440,10 +418,10 @@ if __name__ == "__main__":
     )
 
     download_params_test = dict(
-        video_id="y7D3iIHtelw",
-        video_number_limit=30,
+        video_id="4pZbM3zOMwQ",
+        video_number_limit=5,
         video_info_limit=100,
-        download_config=DownloadConfig(to_s3=True, save_local=True),
+        download_config=DownloadConfig(to_s3=False, save_local=True),
         # date_from="2022-10-01",
         # date_to="2022-12-01",
     )
