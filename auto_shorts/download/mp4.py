@@ -9,19 +9,16 @@ from pytube import YouTube
 
 class Mp4DownloaderInterface(Protocol):
     def download_to_mp4(
-        self,
-        save_path: Path,
-        video_id: str,
-        **kwargs
+        self, save_path: Path, video_id: str, **kwargs
     ) -> bool:
         """Enforce download to mp4 method."""
 
 
 class SeparatelyVideoAudioDownloader:
+    """TODO REFACTOR OR REMOVE - slow and not working properly."""
+
     @staticmethod
-    def _download_video(
-        save_path: Path, video_id: str, **kwargs
-    ) -> bool:
+    def _download_video(save_path: Path, video_id: str, **kwargs) -> bool:
         try:
             (
                 YouTube(
@@ -106,10 +103,7 @@ class MutualVideoAudioDownloader:
         )
 
     def download_to_mp4(
-        self,
-        save_path: Path,
-        video_id: str,
-        **kwargs
+        self, save_path: Path, video_id: str, **kwargs
     ) -> bool:
         try:
             self._download(save_path=save_path, video_id=video_id)
