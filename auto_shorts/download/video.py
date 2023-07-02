@@ -4,6 +4,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import Protocol
+import requests
 
 import numpy as np
 from loguru import logger
@@ -37,6 +38,7 @@ from auto_shorts.download.transcription import (
     YoutubeTranscription,
     YoutubeTranscriptionInterface,
 )
+from auto_shorts.download.video_info import VideoInfoDownloader
 from auto_shorts.preprocess.parse_response import (
     VideoDataList,
     VideoDataParser,
@@ -49,6 +51,7 @@ from auto_shorts.upload.db import (
     upload_channel_info,
     upload_video_info_to_db,
 )
+from auto_shorts.utils import safe_get
 
 
 class WholeVideoDataDownloaderInterface(Protocol):
@@ -78,7 +81,7 @@ class WholeVideoDataDownloader:
         data_uploader: DataUploaderInterface = AwsS3DataUploader(),
         moment_downloader: MostWatchedMomentsDownloaderBase = MostWatchedMomentsDownloader(),
         transcription_downloader: YoutubeTranscriptionInterface = YoutubeTranscription(),
-        mp4_downloader: Mp4DownloaderInterface = SeparatelyVideoAudioDownloader(),
+        mp4_downloader: Mp4DownloaderInterface = MutualVideoAudioDownloader(),
     ):
         self.data_uploader = data_uploader
         self.moment_downloader = moment_downloader
@@ -99,6 +102,14 @@ class WholeVideoDataDownloader:
 
         return most_watched_moments
 
+    @staticmethod
+    def is_video_shorts(video_id: str) -> bool:
+        url = f"https://yt.lemnoslife.com/videos?part=short&id={video_id}"
+        raw_results = requests.get(url).json()
+        if safe_get(raw_results["items"][0], "short", "available"):
+            return True
+        return False
+
     def download_transcription(
         self, video_id: str
     ) -> TranscriptionData | None:
@@ -108,7 +119,7 @@ class WholeVideoDataDownloader:
             )
 
         except TranscriptsDisabled:
-            logger.error("Subtitles are disabled for this video")
+            logger.error("Subtitles are disabled for this WholeVideoDataDownloadervideo")
             transcription = None
 
         return transcription
@@ -153,6 +164,9 @@ class WholeVideoDataDownloader:
             raise ValueError(
                 "Wrong params config! One of 'to_s3' and 'save_local' must be True!"
             )
+        if self.is_video_shorts(video_id=download_params.video_data.id):
+            logger.error(f"Video is YouTube shorts: {download_params.video_data.id}")
+            return False
 
         if is_video_present(video_id=download_params.video_data.id):
             logger.info(
@@ -404,36 +418,36 @@ class VideoFromChannelDownloader:
 
 
 if __name__ == "__main__":
-    uploader_test = AwsS3DataUploader()
-    downloader_test = WholeVideoDataDownloader(
-        data_uploader=uploader_test,
-        mp4_downloader=MutualVideoAudioDownloader(),
-    )
-    channel_info_downloader_test = ChannelInfoDownloader()
-    video_parser_test = VideoDataParser()
-    m_downloader = VideoFromChannelDownloader(
-        downloader=downloader_test,
-        channel_info_downloader=channel_info_downloader_test,
-        video_data_parser=video_parser_test,
-    )
-
-    download_params_test = dict(
-        video_id="4pZbM3zOMwQ",
-        video_number_limit=5,
-        video_info_limit=100,
-        download_config=DownloadConfig(to_s3=False, save_local=True),
-        # date_from="2022-10-01",
-        # date_to="2022-12-01",
-    )
-
-    # @timeit
-    def download_sync(params: dict):
-        m_downloader.download(**params)
-
-    def download_async(params: dict):
-        asyncio.run(
-            m_downloader.download_async(**params, async_videos_block_size=10)
-        )
-
-    # download_sync(download_params_test)
-    download_async(download_params_test)
+    info_downloader = VideoInfoDownloader()
+    video_data_with_stats = info_downloader.download_video_data("8Q2RGD5f0Sc")[0]
+    params = DownloadParams(video_data=video_data_with_stats)
+    downloader_test = WholeVideoDataDownloader()
+    downloader_test.download(params)
+    # channel_info_downloader_test = ChannelInfoDownloader()
+    # video_parser_test = VideoDataParser()
+    # m_downloader = VideoFromChannelDownloader(
+    #     downloader=downloader_test,
+    #     channel_info_downloader=channel_info_downloader_test,
+    #     video_data_parser=video_parser_test,
+    # )
+    #
+    # download_params_test = dict(
+    #     video_id="4pZbM3zOMwQ",
+    #     video_number_limit=5,
+    #     video_info_limit=100,
+    #     download_config=DownloadConfig(to_s3=False, save_local=True),
+    #     # date_from="2022-10-01",
+    #     # date_to="2022-12-01",
+    # )
+    #
+    # # @timeit
+    # def download_sync(params: dict):
+    #     m_downloader.download(**params)
+    #
+    # def download_async(params: dict):
+    #     asyncio.run(
+    #         m_downloader.download_async(**params, async_videos_block_size=10)
+    #     )
+    #
+    # # download_sync(download_params_test)
+    # download_async(download_params_test)
