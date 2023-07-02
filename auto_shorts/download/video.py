@@ -4,9 +4,9 @@ import os
 import shutil
 from pathlib import Path
 from typing import Protocol
-import requests
 
 import numpy as np
+import requests
 from loguru import logger
 from youtube_transcript_api import TranscriptsDisabled
 
@@ -119,7 +119,9 @@ class WholeVideoDataDownloader:
             )
 
         except TranscriptsDisabled:
-            logger.error("Subtitles are disabled for this WholeVideoDataDownloadervideo")
+            logger.error(
+                "Subtitles are disabled for this WholeVideoDataDownloadervideo"
+            )
             transcription = None
 
         return transcription
@@ -165,7 +167,9 @@ class WholeVideoDataDownloader:
                 "Wrong params config! One of 'to_s3' and 'save_local' must be True!"
             )
         if self.is_video_shorts(video_id=download_params.video_data.id):
-            logger.error(f"Video is YouTube shorts: {download_params.video_data.id}")
+            logger.error(
+                f"Video is YouTube shorts: {download_params.video_data.id}"
+            )
             return False
 
         if is_video_present(video_id=download_params.video_data.id):
@@ -419,7 +423,9 @@ class VideoFromChannelDownloader:
 
 if __name__ == "__main__":
     info_downloader = VideoInfoDownloader()
-    video_data_with_stats = info_downloader.download_video_data("8Q2RGD5f0Sc")[0]
+    video_data_with_stats = info_downloader.download_video_data("8Q2RGD5f0Sc")[
+        0
+    ]
     params = DownloadParams(video_data=video_data_with_stats)
     downloader_test = WholeVideoDataDownloader()
     downloader_test.download(params)
