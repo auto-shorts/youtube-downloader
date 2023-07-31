@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-
 class ChannelInfo(BaseModel):
     channel_id: str
     title: str
