@@ -254,7 +254,7 @@ class MultipleVideoDownloader:
         self.downloader = downloader
         self.video_info_downloader = video_info_downloader
         self.channel_info_downloader = channel_info_downloader
-        
+
     def get_video_data(
         self, video_ids: list[str], idx_per_request: int = 10
     ) -> list[VideoDataWithStats]:
@@ -274,14 +274,16 @@ class MultipleVideoDownloader:
     def upload_channel_info_if_not_present(
         self, videos_data: list[VideoData]
     ) -> None:
-        channel_ids = set([video_data.channel_id for video_data in videos_data])
+        channel_ids = set(
+            [video_data.channel_id for video_data in videos_data]
+        )
         for channel_id in channel_ids:
             if not is_channel_present(channel_id=channel_id):
                 channel_info = self.channel_info_downloader.get_info(
                     channel_id=channel_id
                 )
                 upload_channel_info(channel_info)
-            
+
     def download(
         self,
         video_ids: list[str],
@@ -303,7 +305,7 @@ class MultipleVideoDownloader:
     ) -> None:
         videos_data = self.get_video_data(video_ids)
         self.upload_channel_info_if_not_present(videos_data)
-        
+
         video_chunks = np.array_split(videos_data, async_videos_block_size)
 
         for video_chunk in video_chunks:
@@ -499,23 +501,28 @@ class VideoFromChannelDownloader:
 
 
 if __name__ == "__main__":
+
     def get_video_indices(filepath):
         # Read the file content
-        with open(filepath, 'r') as file:
+        with open(filepath, "r") as file:
             content = file.readlines()
 
         # Extract video ids
         video_ids = [url.split("=")[-1].strip() for url in content]
 
         return video_ids
-    
-    video_idx = get_video_indices("/Users/jakubwujec/projects/auto-shorts/data/video_ids_to_download.txt")
+
+    video_idx = get_video_indices(
+        "/Users/jakubwujec/projects/auto-shorts/data/video_ids_to_download.txt"
+    )
     multiple_video_downloader = MultipleVideoDownloader()
     download_config = DownloadConfig(to_s3=True, save_local=False)
-    asyncio.run(multiple_video_downloader.download_async(video_idx, download_config=download_config))
-    
-    
-    
+    asyncio.run(
+        multiple_video_downloader.download_async(
+            video_idx, download_config=download_config
+        )
+    )
+
     # info_downloader = VideoInfoDownloader()
     # video_data_with_stats = info_downloader.download_video_data("8Q2RGD5f0Sc")[
     #     0
@@ -523,8 +530,7 @@ if __name__ == "__main__":
     # params = DownloadParams(video_data=video_data_with_stats)
     # downloader_test = WholeVideoDataDownloader()
     # downloader_test.download(params)
-    
-    
+
     # channel_info_downloader_test = ChannelInfoDownloader()
     # video_parser_test = VideoDataParser()
     # m_downloader = VideoFromChannelDownloader(

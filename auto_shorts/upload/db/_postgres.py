@@ -9,11 +9,11 @@ from auto_shorts.download.models.video_info import (
     VideoDataWithStats,
 )
 from auto_shorts.upload.db.utils import postgres_engine
-from sqlalchemy import text
 
 
 def upload_channel_info(channel_info: ChannelInfo) -> CursorResult:
-    query = text("""
+    query = text(
+        """
         INSERT INTO autoshorts.channels (
             channel_id, 
             title, 
@@ -45,7 +45,8 @@ def upload_channel_info(channel_info: ChannelInfo) -> CursorResult:
             views=:views,
             subscribers=:subscribers,
             updated_at = NOW();
-    """)
+    """
+    )
 
     parameters = {
         "channel_id": channel_info.channel_id,
@@ -53,7 +54,7 @@ def upload_channel_info(channel_info: ChannelInfo) -> CursorResult:
         "description": channel_info.description,
         "custom_url": channel_info.custom_url,
         "views": channel_info.views,
-        "subscribers": channel_info.subscribers
+        "subscribers": channel_info.subscribers,
     }
 
     with postgres_engine.connect() as connection:
@@ -83,7 +84,8 @@ def upload_categories(
 
 
 def is_channel_present(channel_id: str) -> bool:
-    query = text("""
+    query = text(
+        """
         SELECT
             channel_id
         FROM
@@ -91,23 +93,27 @@ def is_channel_present(channel_id: str) -> bool:
         WHERE
             channel_id = :channel_id; 
         """
-        )
+    )
 
     with postgres_engine.connect() as connection:
-        response = connection.execute(query, {"channel_id": channel_id}).fetchall()
+        response = connection.execute(
+            query, {"channel_id": channel_id}
+        ).fetchall()
 
     return len(response) > 0
 
 
 def is_video_present(video_id: str) -> bool:
-    query = text("""
+    query = text(
+        """
         SELECT
             id
         FROM
             autoshorts.videos
         WHERE
             id = :video_id;   
-        """)
+        """
+    )
 
     with postgres_engine.connect() as connection:
         response = connection.execute(query, {"video_id": video_id}).fetchall()
@@ -121,7 +127,8 @@ def upload_video_info_to_db(
 
     tags_joined = ",".join(video_data.tags) if video_data.tags else None
 
-    query = text("""
+    query = text(
+        """
         INSERT INTO autoshorts.videos (
             id, 
             audio_language,
@@ -157,7 +164,8 @@ def upload_video_info_to_db(
             ) 
         ON CONFLICT (id) 
         DO NOTHING;
-    """)
+    """
+    )
 
     parameters = {
         "vid_id": video_data.id,
@@ -172,7 +180,7 @@ def upload_video_info_to_db(
         "s3": s3_path,
         "comments_val": video_data.statistics.comments,
         "likes_val": video_data.statistics.likes,
-        "views_val": video_data.statistics.views
+        "views_val": video_data.statistics.views,
     }
 
     with postgres_engine.connect() as connection:
@@ -180,7 +188,6 @@ def upload_video_info_to_db(
         connection.commit()
 
     return response
-
 
 
 if __name__ == "__main__":
