@@ -124,7 +124,6 @@ def is_video_present(video_id: str) -> bool:
 def upload_video_info_to_db(
     video_data: VideoDataWithStats, s3_path: str
 ) -> CursorResult:
-
     tags_joined = ",".join(video_data.tags) if video_data.tags else None
 
     query = text(
