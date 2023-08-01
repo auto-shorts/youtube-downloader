@@ -53,10 +53,10 @@ def download_data_with_query(
         )
 
 
-def download_files(s3_paths: list[str], bucket_name: str = 'auto-shorts', target_local_dir: str = './data/') -> None:
+def download_files(s3_paths: list[str], bucket_name: str = 'auto-shorts', save_path: Path = root_path / 'data') -> None:
     s3 = boto3.client('s3')
     for s3_path in s3_paths:
-        local_path = target_local_dir + s3_path.split('/')[-1] + '.mp4'
+        local_path = save_path / str(s3_path.split('/')[-1] + '.mp4')
         s3.download_file(bucket_name, s3_path + '/video.mp4', local_path)
 
 
