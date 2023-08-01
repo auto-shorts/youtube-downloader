@@ -4,7 +4,9 @@ from sqlalchemy.engine import CursorResult
 from auto_shorts.upload.db.utils import postgres_engine
 
 
-def get_video_ids_and_buckets_not_in_list(video_id_list: list[str]) -> CursorResult:
+def get_video_ids_and_buckets_not_in_list(
+    video_id_list: list[str],
+) -> CursorResult:
     if not video_id_list:
         # jak lista jest pusta to juz nie jest xdd
         video_id_list = ["xdd"]

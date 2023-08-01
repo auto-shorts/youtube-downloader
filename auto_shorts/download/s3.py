@@ -40,7 +40,9 @@ def download_data_with_query(
         df = pd.read_sql(query, con=connection)
 
     if "s3_path" not in df.columns:
-        raise ValueError("Wrong query! Result need to contain 's3_path' column")
+        raise ValueError(
+            "Wrong query! Result need to contain 's3_path' column"
+        )
 
     if len(df) == 0:
         raise ValueError("Wrong query! Not data found.")

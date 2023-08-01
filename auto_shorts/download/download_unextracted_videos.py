@@ -1,5 +1,6 @@
-from auto_shorts.download.db._postgres import \
-    get_video_ids_and_buckets_not_in_list
+from auto_shorts.download.db._postgres import (
+    get_video_ids_and_buckets_not_in_list,
+)
 from auto_shorts.download.s3 import download_files, get_extracted_video_ids
 
 if __name__ == "__main__":
