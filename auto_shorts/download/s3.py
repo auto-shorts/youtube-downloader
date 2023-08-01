@@ -51,3 +51,17 @@ def download_data_with_query(
         download_s3_folder(
             s3_folder=s3_folder, local_dir=save_path / s3_folder, bucket=bucket
         )
+
+
+def download_files(s3_paths: list[str], bucket_name: str = 'auto-shorts', target_local_dir: str = './data/') -> None:
+    s3 = boto3.client('s3')
+    for s3_path in s3_paths:
+        local_path = target_local_dir + s3_path.split('/')[-1] + '.mp4'
+        s3.download_file(bucket_name, s3_path + '/video.mp4', local_path)
+
+
+def get_extracted_video_ids(bucket_name: str = 'auto-shorts') -> list[str]:
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(bucket_name)
+    # paths are in format data/videos/{category_id}/{channel_id}/{video_id}/{feature_name}.npy
+    return [obj.key.split('/')[-2] for obj in bucket.objects.filter(Prefix='data/videos/') if obj.key.endswith('.npy')]
