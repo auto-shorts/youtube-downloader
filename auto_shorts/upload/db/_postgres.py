@@ -90,22 +90,6 @@ def is_channel_present(channel_id: str) -> bool:
     return True
 
 
-def get_video_ids_and_buckets_not_in_list(video_id_list: list[str]) -> CursorResult:
-    ids_str = ', '.join(f"'{vid_id}'" for vid_id in video_id_list)
-    query = f"""
-        SELECT
-            s3_path
-        FROM
-            autoshorts.videos
-        WHERE
-            id NOT IN ({ids_str})
-    """
-    with postgres_engine.connect() as connection:
-        response = connection.execute(text(query)).fetchall()
-
-    return response
-
-
 def is_video_present(video_id: str) -> bool:
     query = f"""
         SELECT
