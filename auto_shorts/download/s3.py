@@ -40,9 +40,7 @@ def download_data_with_query(
         df = pd.read_sql(query, con=connection)
 
     if "s3_path" not in df.columns:
-        raise ValueError(
-            "Wrong query! Result need to contain 's3_path' column"
-        )
+        raise ValueError("Wrong query! Result need to contain 's3_path' column")
 
     if len(df) == 0:
         raise ValueError("Wrong query! Not data found.")
@@ -53,15 +51,23 @@ def download_data_with_query(
         )
 
 
-def download_files(s3_paths: list[str], bucket_name: str = 'auto-shorts', save_path: Path = root_path / 'data') -> None:
-    s3 = boto3.client('s3')
+def download_files(
+    s3_paths: list[str],
+    bucket_name: str = "auto-shorts",
+    save_path: Path = root_path / "data",
+) -> None:
+    s3 = boto3.client("s3")
     for s3_path in s3_paths:
-        local_path = save_path / str(s3_path.split('/')[-1] + '.mp4')
-        s3.download_file(bucket_name, s3_path + '/video.mp4', local_path)
+        local_path = save_path / str(s3_path.split("/")[-1] + ".mp4")
+        s3.download_file(bucket_name, s3_path + "/video.mp4", local_path)
 
 
-def get_extracted_video_ids(bucket_name: str = 'auto-shorts') -> list[str]:
-    s3 = boto3.resource('s3')
+def get_extracted_video_ids(bucket_name: str = "auto-shorts") -> list[str]:
+    s3 = boto3.resource("s3")
     bucket = s3.Bucket(bucket_name)
     # paths are in format data/videos/{category_id}/{channel_id}/{video_id}/{feature_name}.npy
-    return [obj.key.split('/')[-2] for obj in bucket.objects.filter(Prefix='data/videos/') if obj.key.endswith('.npy')]
+    return [
+        obj.key.split("/")[-2]
+        for obj in bucket.objects.filter(Prefix="data/videos/")
+        if obj.key.endswith(".npy")
+    ]
