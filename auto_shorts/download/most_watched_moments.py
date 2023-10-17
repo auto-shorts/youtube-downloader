@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
 import pprint
+from abc import ABC, abstractmethod
 
 import pandas as pd
 import requests
