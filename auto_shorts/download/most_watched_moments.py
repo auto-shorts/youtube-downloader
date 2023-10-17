@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import pprint
 
 import pandas as pd
 import requests
@@ -36,8 +37,9 @@ class MostWatchedMomentsDownloader(MostWatchedMomentsDownloaderBase):
     def _preprocess_results(raw_results: dict) -> pd.DataFrame:
         cleaned_timeframes = []
 
+        pprint.pprint(raw_results["items"][0]["mostReplayed"])
         for timeframe in raw_results["items"][0]["mostReplayed"][
-            "heatMarkers"
+            "markers"
         ]:  # check it in the future
             # print(timeframe)
             timeframe_data = timeframe["heatMarkerRenderer"]
