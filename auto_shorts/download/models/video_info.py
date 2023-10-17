@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from typing import Iterable
+
+from pydantic import BaseModel, validator
 
 
 class VideoStatistics(BaseModel):
@@ -18,6 +20,14 @@ class VideoData(BaseModel):
     category_id: str
     tags: list[str] | None
     title: str | None
+
+    @validator("tags", pre=True, always=True)
+    def ensure_tags_is_iterable(cls, v):
+        if v is None:
+            return []
+        elif not isinstance(v, Iterable):
+            return [v]
+        return v
 
 
 class VideoDataWithStats(VideoData):

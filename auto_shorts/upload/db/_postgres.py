@@ -12,7 +12,8 @@ from auto_shorts.upload.db.utils import postgres_engine
 
 
 def upload_channel_info(channel_info: ChannelInfo) -> CursorResult:
-    query = f"""
+    query = text(
+        """
         INSERT INTO autoshorts.channels (
             channel_id, 
             title, 
@@ -25,29 +26,39 @@ def upload_channel_info(channel_info: ChannelInfo) -> CursorResult:
         )
         VALUES
             (
-                '{channel_info.channel_id}',
-                '{channel_info.title}',
-                '{channel_info.description}',
-                '{channel_info.custom_url}',
-                {channel_info.views},
-                {channel_info.subscribers},
+                :channel_id,
+                :title,
+                :description,
+                :custom_url,
+                :views,
+                :subscribers,
                 null,
                 NOW()
             ) 
         ON CONFLICT (channel_id) 
         DO
         UPDATE
-        SET channel_id='{channel_info.channel_id}',
-            title='{channel_info.title}',
-            description='{channel_info.description}',
-            custom_url='{channel_info.custom_url}',
-            views={channel_info.views},
-            subscribers={channel_info.subscribers},
+        SET channel_id=:channel_id,
+            title=:title,
+            description=:description,
+            custom_url=:custom_url,
+            views=:views,
+            subscribers=:subscribers,
             updated_at = NOW();
     """
+    )
+
+    parameters = {
+        "channel_id": channel_info.channel_id,
+        "title": channel_info.title,
+        "description": channel_info.description,
+        "custom_url": channel_info.custom_url,
+        "views": channel_info.views,
+        "subscribers": channel_info.subscribers,
+    }
 
     with postgres_engine.connect() as connection:
-        response = connection.execute(text(query))
+        response = connection.execute(query, parameters)
         connection.commit()
 
     return response
@@ -73,48 +84,50 @@ def upload_categories(
 
 
 def is_channel_present(channel_id: str) -> bool:
-    query = f"""
+    query = text(
+        """
         SELECT
             channel_id
         FROM
             autoshorts.channels
         WHERE
-            channel_id = '{channel_id}'   
-    """
+            channel_id = :channel_id; 
+        """
+    )
+
     with postgres_engine.connect() as connection:
-        response = connection.execute(text(query)).fetchall()
+        response = connection.execute(
+            query, {"channel_id": channel_id}
+        ).fetchall()
 
-    if len(response) == 0:
-        return False
-
-    return True
+    return len(response) > 0
 
 
 def is_video_present(video_id: str) -> bool:
-    query = f"""
+    query = text(
+        """
         SELECT
-            channel_id
+            id
         FROM
             autoshorts.videos
         WHERE
-            id = '{video_id}'   
-    """
+            id = :video_id;   
+        """
+    )
+
     with postgres_engine.connect() as connection:
-        response = connection.execute(text(query)).fetchall()
+        response = connection.execute(query, {"video_id": video_id}).fetchall()
 
-    if len(response) == 0:
-        return False
-
-    return True
+    return len(response) > 0
 
 
 def upload_video_info_to_db(
     video_data: VideoDataWithStats, s3_path: str
 ) -> CursorResult:
-    licensed = (
-        video_data.licensed if video_data.licensed is not None else "null"
-    )
-    query = f"""
+    tags_joined = ",".join(video_data.tags) if video_data.tags else None
+
+    query = text(
+        """
         INSERT INTO autoshorts.videos (
             id, 
             audio_language,
@@ -133,28 +146,44 @@ def upload_video_info_to_db(
         )
         VALUES
             (
-                '{video_data.id}',
-                '{video_data.audio_language}',
-                {licensed},
-                '{video_data.description}',
-                '{video_data.published_at}',
-                '{",".join(video_data.tags)}',
-                '{video_data.title}',
-                '{video_data.category_id}',
-                '{video_data.channel_id}',
-                '{s3_path}',
-                {video_data.statistics.comments},
-                {video_data.statistics.likes},
-                {video_data.statistics.views},
+                :vid_id,
+                :audio_lang,
+                :licensed_val,
+                :desc,
+                :pub_at,
+                :tags_val,
+                :title_val,
+                :cat_id,
+                :chan_id,
+                :s3,
+                :comments_val,
+                :likes_val,
+                :views_val,
                 NOW()
             ) 
         ON CONFLICT (id) 
-        DO
-        NOTHING;
+        DO NOTHING;
     """
+    )
+
+    parameters = {
+        "vid_id": video_data.id,
+        "audio_lang": video_data.audio_language,
+        "licensed_val": video_data.licensed,
+        "desc": video_data.description,
+        "pub_at": video_data.published_at,
+        "tags_val": tags_joined,
+        "title_val": video_data.title,
+        "cat_id": video_data.category_id,
+        "chan_id": video_data.channel_id,
+        "s3": s3_path,
+        "comments_val": video_data.statistics.comments,
+        "likes_val": video_data.statistics.likes,
+        "views_val": video_data.statistics.views,
+    }
 
     with postgres_engine.connect() as connection:
-        response = connection.execute(text(query))
+        response = connection.execute(query, parameters)
         connection.commit()
 
     return response

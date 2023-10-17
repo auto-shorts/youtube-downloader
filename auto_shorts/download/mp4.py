@@ -99,7 +99,7 @@ class MutualVideoAudioDownloader:
             )
             .streams.filter(file_extension="mp4")
             .first()
-            .download(str(save_path), filename="raw_video.mp4")
+            .download(str(save_path), filename="video.mp4")
         )
 
     def download_to_mp4(
