@@ -17,6 +17,7 @@ from auto_shorts.download.channel import (
 from auto_shorts.download.models.transcription import TranscriptionData
 from auto_shorts.download.models.video import (
     DownloadConfig,
+    DownloadedVideoResults,
     DownloadParams,
     TranscriptionAndMoments,
 )
@@ -288,14 +289,26 @@ class MultipleVideoDownloader:
         self,
         video_ids: list[str],
         download_config: DownloadConfig = DownloadConfig(),
-    ) -> None:
+    ) -> list[DownloadedVideoResults]:
         videos_data = self.get_video_data(video_ids)
         self.upload_channel_info_if_not_present(videos_data)
+        results_list = []
+
         for video_data in videos_data:
             download_params = DownloadParams(
                 video_data=video_data, **download_config.dict()
             )
-            self.downloader.download(download_params=download_params)
+            successful_download: bool = self.downloader.download(
+                download_params=download_params
+            )
+            results_list.append(
+                DownloadedVideoResults(
+                    video_id=download_params.video_data.id,
+                    successful_download=successful_download,
+                )
+            )
+
+        return results_list
 
     async def download_async(
         self,

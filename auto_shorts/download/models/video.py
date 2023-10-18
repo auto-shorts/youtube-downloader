@@ -23,3 +23,8 @@ class DownloadConfig(BaseModel):
 class DownloadParams(DownloadConfig):
     video_data: VideoDataWithStats
     resolution: str = "480p"
+
+
+class DownloadedVideoResults(BaseModel):
+    video_id: str
+    successful_download: bool
