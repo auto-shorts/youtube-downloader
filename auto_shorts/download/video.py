@@ -289,7 +289,7 @@ class MultipleVideoDownloader:
         self,
         video_ids: list[str],
         download_config: DownloadConfig = DownloadConfig(),
-    ) -> None:
+    ) -> list[DownloadedVideoResults]:
         videos_data = self.get_video_data(video_ids)
         self.upload_channel_info_if_not_present(videos_data)
         results_list = []
