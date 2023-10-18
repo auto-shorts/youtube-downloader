@@ -29,6 +29,15 @@ class VideoData(BaseModel):
             return [v]
         return v
 
+    @validator("category_id", pre=True, always=True)
+    def cast_str_to_int(cls, v):
+        if isinstance(v, int):
+            return str(v)
+        elif isinstance(v, str):
+            return v
+        else:
+            raise ValueError("Wrong type!")
+
 
 class VideoDataWithStats(VideoData):
     statistics: VideoStatistics | None
