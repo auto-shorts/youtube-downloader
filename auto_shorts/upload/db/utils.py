@@ -10,11 +10,11 @@ from auto_shorts.config import (
 postgres_engine = create_engine(
     URL.create(
         host=POSTGRES_HOST,
-        drivername="postgresql+psycopg2",
+        drivername="mysql+mysqlconnector",
         username=POSTGRES_USERNAME,
         password=POSTGRES_PASSWORD,
         database=POSTGRES_DB,
-        port=5432,
+        port=3306,
     ),
     pool_pre_ping=True,
 )
