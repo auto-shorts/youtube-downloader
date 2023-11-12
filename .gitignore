@@ -134,3 +134,5 @@ dmypy.json
 data/
 .DS_Store
 .idea/
+data/
+poetry.lock

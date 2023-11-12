@@ -259,7 +259,7 @@ class MultipleVideoDownloader:
     def get_video_data(
         self, video_ids: list[str], idx_per_request: int = 10
     ) -> list[VideoDataWithStats]:
-        logger.info("Downloading videos idx from channel")
+        logger.info("Downloading multiple videos")
         idx_chunks = np.array_split(video_ids, idx_per_request)
         video_data = []
         for idx_chunk in idx_chunks:
@@ -526,8 +526,7 @@ if __name__ == "__main__":
         return video_ids
 
     video_idx = get_video_indices(
-        "/Users/jakubwujec/projects/auto-shorts/data/video_ids_to_download.txt"
-    )
+    Path(__file__).parents[2] / "data" / "video_ids_to_download.txt")
     multiple_video_downloader = MultipleVideoDownloader()
     download_config = DownloadConfig(to_s3=True, save_local=False)
     asyncio.run(
