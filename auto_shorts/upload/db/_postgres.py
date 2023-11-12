@@ -72,7 +72,7 @@ def upload_categories(
     data = pd.DataFrame(
         [video_category.dict() for video_category in video_categories]
     )
-    with postgres_engine.connect() as connection:
+    with postgres_engine as connection:
         data.to_sql(
             name=table_name,
             con=connection,
