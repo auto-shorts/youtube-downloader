@@ -37,22 +37,22 @@ class MostWatchedMomentsDownloader(MostWatchedMomentsDownloaderBase):
     def _preprocess_results(raw_results: dict) -> pd.DataFrame:
         cleaned_timeframes = []
 
-        pprint.pprint(raw_results["items"][0]["mostReplayed"])
+        marker_duration_millis = raw_results["items"][0]["mostReplayed"][
+            "markers"
+        ][1]["startMillis"]
         for timeframe in raw_results["items"][0]["mostReplayed"][
             "markers"
         ]:  # check it in the future
             # print(timeframe)
-            timeframe_data = timeframe["heatMarkerRenderer"]
-
             one_timeframe_cleaned = {
-                "time_start_ms": timeframe_data["timeRangeStartMillis"],
+                "time_start_ms": timeframe["startMillis"],
                 "time_end_ms": (
-                    timeframe_data["timeRangeStartMillis"]
-                    + timeframe_data["markerDurationMillis"]
+                    timeframe["startMillis"]
+                    + marker_duration_millis
                 ),
-                "peroid_duration_ms": timeframe_data["markerDurationMillis"],
-                "intensity_score": timeframe_data[
-                    "heatMarkerIntensityScoreNormalized"
+                "peroid_duration_ms": marker_duration_millis,
+                "intensity_score": timeframe[
+                    "intensityScoreNormalized"
                 ],
             }
             cleaned_timeframes.append(one_timeframe_cleaned)
