@@ -35,10 +35,8 @@ def upload_channel_info(channel_info: ChannelInfo) -> CursorResult:
                 null,
                 NOW()
             ) 
-        ON CONFLICT (channel_id) 
-        DO
-        UPDATE
-        SET channel_id=:channel_id,
+        ON DUPLICATE KEY UPDATE
+            channel_id=:channel_id,
             title=:title,
             description=:description,
             custom_url=:custom_url,
