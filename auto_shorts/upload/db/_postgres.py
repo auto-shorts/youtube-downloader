@@ -148,7 +148,7 @@ def upload_video_info_to_db(
                 :audio_lang,
                 :licensed_val,
                 :desc,
-                :pub_at,
+                STR_TO_DATE(:pub_at, '%Y-%m-%dT%H:%i:%sZ'),
                 :tags_val,
                 :title_val,
                 :cat_id,
@@ -159,8 +159,8 @@ def upload_video_info_to_db(
                 :views_val,
                 NOW()
             ) 
-        ON CONFLICT (id) 
-        DO NOTHING;
+        ON DUPLICATE KEY UPDATE
+        id = VALUES(id);
     """
     )
 
