@@ -4,7 +4,7 @@ from typing import Protocol
 
 from loguru import logger
 from moviepy.editor import AudioFileClip, VideoFileClip
-from pytube import YouTube
+from pytubefix import YouTube
 
 
 class Mp4DownloaderInterface(Protocol):

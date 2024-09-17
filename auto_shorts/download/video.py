@@ -526,7 +526,7 @@ if __name__ == "__main__":
         return video_ids
 
     video_idx = get_video_indices(
-    Path(__file__).parents[2] / "data" / "video_ids_to_download.txt")
+    Path(__file__).parents[2] / "data" / "vids_2.txt")
     multiple_video_downloader = MultipleVideoDownloader()
     download_config = DownloadConfig(to_s3=True, save_local=False)
     asyncio.run(
