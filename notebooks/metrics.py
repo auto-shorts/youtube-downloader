@@ -8,6 +8,7 @@ from sklearn.metrics import (
     accuracy_score,
     precision_score,
     cohen_kappa_score,
+    recall_score,
 )
 
 from loguru import logger
@@ -74,5 +75,6 @@ class MetricCalculator:
             "f1": f1_score(self.labels, preds),
             "accuracy": accuracy_score(self.labels, preds),
             "precision": precision_score(self.labels, preds),
+            "recall": recall_score(self.labels, preds),
             "kappa": cohen_kappa_score(self.labels, preds),
         }
